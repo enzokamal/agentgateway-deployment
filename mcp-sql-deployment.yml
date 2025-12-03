@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-mssql
+spec:
+  selector:
+    matchLabels:
+      app: mcp-mssql
+  template:
+    metadata:
+      labels:
+        app: mcp-mssql
+    spec:
+      containers:
+      - name: mcp-mssql
+        image: kamalberrybytes/mssql-mcp:v1
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-mssql-service
+  labels:
+    app: mcp-mssql
+spec:
+  selector:
+    app: mcp-mssql
+  ports:
+  - port: 8000
+    targetPort: 8000
+    appProtocol: kgateway.dev/mcp

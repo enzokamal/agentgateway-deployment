@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-hubspot
+spec:
+  selector:
+    matchLabels:
+      app: mcp-hubspot
+  template:
+    metadata:
+      labels:
+        app: mcp-hubspot
+    spec:
+      containers:
+      - name: mcp-hubspot
+        image: kamalberrybytes/mcp-hubspot:latest
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-hubspot-service
+  labels:
+    app: mcp-hubspot
+spec:
+  selector:
+    app: mcp-hubspot
+  ports:
+  - port: 8000
+    targetPort: 8000
+    appProtocol: kgateway.dev/mcp
+

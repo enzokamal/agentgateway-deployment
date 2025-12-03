@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-example
+spec:
+  selector:
+    matchLabels:
+      app: mcp-example
+  template:
+    metadata:
+      labels:
+        app: mcp-example
+    spec:
+      containers:
+      - name: mcp-example
+        image: kamalberrybytes/mcp:1.0.0
+        imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-example-service
+  labels:
+    app: mcp-example
+spec:
+  selector:
+    app: mcp-example
+  ports:
+  - port: 8000
+    targetPort: 8000
+    appProtocol: kgateway.dev/mcp
