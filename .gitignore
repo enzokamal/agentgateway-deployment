@@ -1,0 +1,66 @@
+# Kubernetes temporary files
+*.tmp
+*.log
+
+# Shell scripts and executables
+
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+build/
+dist/
+*.tgz
+
+# Docker
+.dockerignore
+
+# Node.js (if any root-level node files)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# YAML temporary files
+*.yaml.tmp
+*.yml.tmp
