@@ -122,8 +122,16 @@ wait_for_agentgateway() {
 
 deploy_mcp_server() {
     echo_info "Deploying MCP example server..."
-    
+
     cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-example-sa
+  namespace: default
+  annotations:
+    azure.workload.identity/client-id: "${AZURE_CLIENT_ID}"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -137,6 +145,7 @@ spec:
       labels:
         app: mcp-example
     spec:
+      serviceAccountName: mcp-example-sa
       containers:
       - name: mcp-example
         image: ${MCP_SERVER_IMAGE}
@@ -156,7 +165,7 @@ spec:
     targetPort: 8000
     appProtocol: kgateway.dev/mcp
 EOF
-    
+
     echo_info "MCP server deployed successfully!"
 }
 
@@ -189,7 +198,7 @@ spec:
             uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/keys
             cacheDuration: 5m
         audiences:
-        - "api://${AZURE_CLIENT_ID}"
+      - "api://${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
 EOF
     
     echo_info "Azure AD authentication policy created!"
@@ -218,7 +227,7 @@ EOF
 
 create_http_route() {
     echo_info "Creating HTTP route..."
-    
+
     cat <<EOF | kubectl apply -f -
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -237,8 +246,94 @@ spec:
       group: agentgateway.dev
       kind: AgentgatewayBackend
 EOF
-    
+
     echo_info "HTTP route created!"
+}
+
+deploy_ui() {
+    echo_info "Deploying MCP UI application..."
+
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mcp-ui-sa
+  namespace: default
+  annotations:
+    azure.workload.identity/client-id: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-ui
+  template:
+    metadata:
+      labels:
+        app: mcp-ui
+    spec:
+      serviceAccountName: mcp-ui-sa  
+      containers:
+      - name: mcp-ui
+        image: ${MCP_UI_IMAGE:-kamalberrybytes/mcp-ui:latest}
+        imagePullPolicy: Always  
+        ports:
+        - containerPort: 3000
+        env:
+        - name: AZURE_CLIENT_ID
+          value: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
+        - name: AZURE_TENANT_ID
+          value: "${AZURE_TENANT_ID:-6ba231bb-ad9e-41b9-b23d-674c80196bbd}"
+        - name: GATEWAY_URL
+          value: "http://agentgateway.default.svc.cluster.local:8080"
+        - name: REDIRECT_URI
+          value: "http://localhost:3000/auth/callback"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-ui-service
+  labels:
+    app: mcp-ui
+spec:
+  selector:
+    app: mcp-ui
+  ports:
+  - port: 3000
+    targetPort: 3000
+    protocol: TCP
+EOF
+
+    echo_info "MCP UI deployed successfully!"
+}
+
+create_ui_route() {
+    echo_info "Creating UI HTTP route..."
+
+    cat <<EOF | kubectl apply -f -
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mcp-ui
+spec:
+  parentRefs:
+  - name: agentgateway
+    group: gateway.networking.k8s.io
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /ui
+    backendRefs:
+    - name: mcp-ui-service
+      port: 3000
+EOF
+
+    echo_info "UI HTTP route created!"
 }
 
 verify_deployment() {
@@ -247,11 +342,14 @@ verify_deployment() {
     echo_info "Gateway status:"
     kubectl get gateway agentgateway
     echo ""
-    echo_info "Deployment status:"
+    echo_info "AgentGateway deployment status:"
     kubectl get deployment agentgateway
     echo ""
     echo_info "MCP server status:"
     kubectl get deployment mcp-example
+    echo ""
+    echo_info "UI application status:"
+    kubectl get deployment mcp-ui
     echo ""
     echo_info "AgentGateway configuration:"
     helm get values kgateway -n kgateway-system
@@ -264,11 +362,15 @@ print_usage_instructions() {
     echo_info "=========================================="
     echo ""
     echo_info "To port-forward the agentgateway service:"
-    echo "  kubectl port-forward svc/agentgateway 8000:8080 --address 0.0.0.0"
+    echo "  kubectl port-forward svc/agentgateway 8080:8080 --address 0.0.0.0"
     echo ""
-    
+    echo_info "UI Application:"
+    echo "  Access the UI at: http://localhost:8080/ui"
+    echo "  The UI handles automatic Entra ID authentication and provides access to MCP servers."
+    echo ""
+
     if [[ -n "$AZURE_TENANT_ID" ]] && [[ -n "$AZURE_CLIENT_ID" ]] && [[ -n "$AZURE_CLIENT_SECRET" ]]; then
-        echo_info "To generate an Azure AD token:"
+        echo_info "To generate an Azure AD token manually:"
         echo "  curl -X POST https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token \\"
         echo "    -H \"Content-Type: application/x-www-form-urlencoded\" \\"
         echo "    -d \"client_id=${AZURE_CLIENT_ID}\" \\"
@@ -277,16 +379,16 @@ print_usage_instructions() {
         echo "    -d \"grant_type=client_credentials\""
         echo ""
     fi
-    
-    echo_info "To access the MCP server through agentgateway:"
-    echo "  curl -H \"Authorization: Bearer <your-token>\" http://localhost:8000/mcp/mcp-example"
+
+    echo_info "To access MCP servers directly through agentgateway:"
+    echo "  curl -H \"Authorization: Bearer <your-token>\" http://localhost:8080/mcp/mcp-example"
     echo ""
 }
 
 main() {
     echo_info "Starting agentgateway deployment..."
     echo ""
-    
+
     check_prerequisites
     deploy_gateway_api_crds
     deploy_kgateway_crds
@@ -298,6 +400,8 @@ main() {
     create_azure_auth_policy
     create_mcp_backend
     create_http_route
+    deploy_ui
+    create_ui_route
     verify_deployment
     print_usage_instructions
 }

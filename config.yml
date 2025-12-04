@@ -1,0 +1,75 @@
+config:
+  logging:
+    format: json
+    level: info
+
+binds:
+  - port: 3000
+
+listeners:
+  - routes:
+      - policies:
+          # CORS configuration
+          cors:
+            allowOrigins:
+              - "*"
+            allowHeaders:
+              - authorization
+              - content-type
+              - mcp-protocol-version
+              - cache-control
+            allowMethods:
+              - GET
+              - POST
+              - OPTIONS
+          
+          # JWT validation for Entra ID tokens
+          jwtAuth:
+            mode: required  # Reject requests without valid tokens
+            
+            # Entra ID v2.0 endpoint configuration
+            issuer: "https://login.microsoftonline.com/6ba231bb-ad9e-41b9-b23d-674c80196bbd/v2.0"
+            
+            # Your app's client ID (audience)
+            audiences:
+              - "api://11ddc0cd-e6fc-48b6-8832-de61800fb41e"  # Default format
+              # OR if you set a custom identifier URI:
+              # - "your-custom-identifier-uri"
+            
+            # JWKS endpoint for Entra ID public keys
+            jwks:
+              url: "https://login.microsoftonline.com/6ba231bb-ad9e-41b9-b23d-674c80196bbd/discovery/v2.0/keys"
+              # Refresh keys every 24 hours
+              refresh_interval: 86400
+            
+            # Validate token claims
+            claims:
+              # Require specific scopes
+              - name: scp
+                values: ["mcp.access"]  # or "user_impersonation"
+                required: true
+              
+              # Optional: Validate token version
+              - name: ver
+                values: ["2.0"]
+                required: true
+        
+        # Protected Resource Metadata (for MCP auto-discovery)
+        metadata:
+          resource: "http://localhost:3000"
+          authorization_servers:
+            - "https://login.microsoftonline.com/6ba231bb-ad9e-41b9-b23d-674c80196bbd/v2.0"
+          scopes_supported:
+            - "api://6ba231bb-ad9e-41b9-b23d-674c80196bbd/mcp.access"
+        
+        backends:
+          - mcp:
+              targets:
+                - name: everything
+                  stdio:
+                    cmd: npx
+                    args: ["@modelcontextprotocol/server-everything"]
+                    env:
+                      # Pass user info to MCP server if needed
+                      MCP_USER: "${jwt.sub}"  # User's object ID
+                      MCP_USER_EMAIL: "${jwt.preferred_username}"
