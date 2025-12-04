@@ -288,6 +288,8 @@ spec:
           value: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
         - name: AZURE_TENANT_ID
           value: "${AZURE_TENANT_ID:-6ba231bb-ad9e-41b9-b23d-674c80196bbd}"
+        - name: AZURE_CLIENT_SECRET
+          value: "${AZURE_CLIENT_SECRET:-IqT8Q~r6in1pFmUsJFMKTTQg6g6Qzo.AtN1Bwbm1}"
         - name: GATEWAY_URL
           value: "http://agentgateway.default.svc.cluster.local:8080"
         - name: REDIRECT_URI

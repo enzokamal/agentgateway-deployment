@@ -12,6 +12,7 @@ NC='\033[0m' # No Color
 # Configuration variables
 MCP_UI_IMAGE="${MCP_UI_IMAGE:-kamalberrybytes/mcp-ui:latest}"
 NAMESPACE="${NAMESPACE:-default}"
+AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET:-}"
 
 echo_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -100,6 +101,41 @@ metadata:
 EOF
 
     echo_info "Service Account created!"
+}
+
+deploy_ui_secret() {
+    echo_step "Creating MCP UI Secret..."
+
+    # Check if secret already exists
+    if kubectl get secret mcp-ui-secret -n ${NAMESPACE} &> /dev/null; then
+        echo_info "Secret already exists, skipping creation"
+        return
+    fi
+
+    # Prompt for client secret if not provided
+    if [[ -z "${AZURE_CLIENT_SECRET}" ]]; then
+        echo_warn "AZURE_CLIENT_SECRET not set. Please provide your Azure AD application client secret:"
+        read -s -p "Client Secret: " AZURE_CLIENT_SECRET
+        echo ""
+    fi
+
+    if [[ -z "${AZURE_CLIENT_SECRET}" ]]; then
+        echo_error "Client secret is required for authentication"
+        exit 1
+    fi
+
+    cat <<EOF | kubectl apply -f -
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-ui-secret
+  namespace: ${NAMESPACE}
+type: Opaque
+data:
+  client-secret: $(echo -n "${AZURE_CLIENT_SECRET}" | base64)
+EOF
+
+    echo_info "Secret created!"
 }
 
 deploy_ui_deployment() {
@@ -326,6 +362,7 @@ main() {
 
     if [[ "$deploy" == true ]]; then
         deploy_ui_service_account
+        deploy_ui_secret
         deploy_ui_deployment
         deploy_ui_service
         deploy_ui_route

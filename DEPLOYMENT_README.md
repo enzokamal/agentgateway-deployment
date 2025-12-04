@@ -60,6 +60,7 @@ Options:
 |----------|---------|-------------|
 | `MCP_UI_IMAGE` | `kamalberrybytes/mcp-ui:latest` | Docker image name |
 | `NAMESPACE` | `default` | Kubernetes namespace |
+| `AZURE_CLIENT_SECRET` | *(required)* | Azure AD application client secret |
 
 ## 🏗️ What Gets Deployed
 
@@ -106,6 +107,11 @@ export NAMESPACE=my-namespace
 ```
 
 ### Azure Configuration
+Set these environment variables before deployment:
+```bash
+export AZURE_CLIENT_SECRET=your-client-secret-here
+```
+
 Update these values in the script or deployment:
 - `AZURE_CLIENT_ID`: Your Entra ID application ID
 - `AZURE_TENANT_ID`: Your tenant ID
