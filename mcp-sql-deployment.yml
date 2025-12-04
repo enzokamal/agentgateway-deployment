@@ -25,7 +25,7 @@ spec:
         image: kamalberrybytes/mssql-mcp:v1
         imagePullPolicy: Always
 ---
-apiVersion: v1
+apiVersion: v1   
 kind: Service
 metadata:
   name: mcp-mssql-service
