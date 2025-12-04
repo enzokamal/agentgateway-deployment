@@ -64,7 +64,11 @@
             <!-- Authorization Code Input -->
             <div style="border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem;">
                 <p style="font-size: 14px; color: #666; margin-bottom: 1rem;">
-                    Or enter Entra ID authorization code:
+                    Or authenticate with Entra ID:
+                </p>
+                <button onclick="openAuthUrl()" class="login-btn" style="width: 100%; margin-bottom: 1rem;">🔗 Open Entra ID Login</button>
+                <p style="font-size: 12px; color: #666; margin-bottom: 1rem; text-align: center;">
+                    (You'll be redirected back with the authorization code)
                 </p>
                 <form id="code-form">
                     <input type="text" id="auth-code" placeholder="Paste authorization code here"
@@ -72,7 +76,7 @@
                     <button type="submit" class="login-btn" style="width: 100%;">Exchange Code for Tokens</button>
                 </form>
                 <p style="font-size: 12px; color: #888; margin-top: 0.5rem;">
-                    Get code from: <code>https://login.microsoftonline.com/your-tenant/oauth2/v2.0/authorize?client_id=11ddc0cd-e6fc-48b6-8832-de61800fb41e&response_type=code&redirect_uri=http://localhost:3000/auth/callback&scope=api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default</code>
+                    Manual URL: <code>https://login.microsoftonline.com/<%= AZURE_TENANT_ID %>/oauth2/v2.0/authorize?client_id=<%= AZURE_CLIENT_ID %>&response_type=code&redirect_uri=<%= encodeURIComponent(REDIRECT_URI) %>&scope=openid%20api://<%= AZURE_CLIENT_ID %>/.default</code>
                 </p>
             </div>
         </div>
@@ -139,6 +143,11 @@
             document.getElementById('loading-section').style.display = 'none';
             document.getElementById('error-section').style.display = 'none';
             document.getElementById('auth-code').value = '';
+        }
+
+        function openAuthUrl() {
+            const authUrl = `https://login.microsoftonline.com/<%= AZURE_TENANT_ID %>/oauth2/v2.0/authorize?client_id=<%= AZURE_CLIENT_ID %>&response_type=code&redirect_uri=<%= encodeURIComponent(REDIRECT_URI) %>&scope=openid%20api%3A%2F%2F<%= AZURE_CLIENT_ID %>%2F.default`;
+            window.open(authUrl, '_blank');
         }
 
         // Auto-focus the input field

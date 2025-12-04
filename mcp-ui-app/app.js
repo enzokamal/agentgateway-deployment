@@ -184,11 +184,66 @@ app.use(session({
 app.set('view engine', 'ejs');
 
 // Routes
+app.get('/auth/callback', (req, res) => {
+  const { code, error, error_description } = req.query;
+
+  if (error) {
+    return res.send(`
+      <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Authentication Error</h2>
+          <p><strong>Error:</strong> ${error}</p>
+          <p><strong>Description:</strong> ${error_description || 'No description provided'}</p>
+          <p><a href="/">← Back to Login</a></p>
+        </body>
+      </html>
+    `);
+  }
+
+  if (code) {
+    return res.send(`
+      <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Authorization Code Received</h2>
+          <p>Copy this authorization code and paste it in the login form:</p>
+          <textarea readonly style="width: 100%; height: 100px; padding: 10px; font-family: monospace; font-size: 14px;">${code}</textarea>
+          <br><br>
+          <button onclick="copyToClipboard()" style="padding: 10px 20px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer;">Copy to Clipboard</button>
+          <br><br>
+          <p><a href="/">← Back to Login</a></p>
+          <script>
+            function copyToClipboard() {
+              const textarea = document.querySelector('textarea');
+              textarea.select();
+              document.execCommand('copy');
+              alert('Code copied to clipboard!');
+            }
+          </script>
+        </body>
+      </html>
+    `);
+  }
+
+  res.send(`
+    <html>
+      <body style="font-family: Arial, sans-serif; padding: 20px;">
+        <h2>No Authorization Code</h2>
+        <p>No authorization code was received. Please try the authentication process again.</p>
+        <p><a href="/">← Back to Login</a></p>
+      </body>
+    </html>
+  `);
+});
+
 app.get('/', (req, res) => {
   if (req.session.authenticated) {
     res.render('dashboard', { user: mockUser });
   } else {
-    res.render('login');
+    res.render('login', {
+      AZURE_CLIENT_ID: AZURE_CLIENT_ID,
+      AZURE_TENANT_ID: AZURE_TENANT_ID,
+      REDIRECT_URI: REDIRECT_URI
+    });
   }
 });
 
@@ -223,7 +278,7 @@ app.post('/auth/exchange-code', async (req, res) => {
       code: code,
       grant_type: 'authorization_code',
       redirect_uri: REDIRECT_URI,
-      scope: 'api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default'
+      scope: 'openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default'
     });
 
     const response = await axios.post(tokenUrl, params, {

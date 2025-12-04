@@ -11,7 +11,7 @@ const authUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.
     client_id: AZURE_CLIENT_ID,
     response_type: 'code',
     redirect_uri: REDIRECT_URI,
-    scope: 'api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default',
+    scope: 'openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default',
     response_mode: 'query'
   }).toString();
 
