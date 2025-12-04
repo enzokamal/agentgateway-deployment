@@ -17,8 +17,42 @@ const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/cal
 const mockUser = {
   displayName: 'Test User',
   name: 'Test User',
-  accessToken: 'mock-jwt-token-for-testing'
+  accessToken: null // Will be set dynamically
 };
+
+// Function to get access token using client credentials
+async function getAccessToken() {
+  const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
+  const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
+  const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
+
+  if (!AZURE_CLIENT_SECRET) {
+    console.warn('AZURE_CLIENT_SECRET not set, using mock token for development');
+    return 'mock-jwt-token-for-testing';
+  }
+
+  try {
+    const tokenUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`;
+    const params = new URLSearchParams({
+      client_id: AZURE_CLIENT_ID,
+      client_secret: AZURE_CLIENT_SECRET,
+      scope: 'api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default',
+      grant_type: 'client_credentials'
+    });
+
+    const response = await axios.post(tokenUrl, params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    return response.data.access_token;
+  } catch (error) {
+    console.error('Failed to get access token:', error.response?.data || error.message);
+    // Fallback to mock token for development
+    return 'mock-jwt-token-for-testing';
+  }
+}
 
 // MCP Protocol Client
 class MCPClient {
@@ -171,9 +205,11 @@ app.get('/logout', (req, res) => {
 });
 
 // Initialize MCP client for session
-app.use('/api', (req, res, next) => {
+app.use('/api', async (req, res, next) => {
   if (req.session.authenticated) {
-    req.mcpClient = new MCPClient(GATEWAY_URL, mockUser.accessToken);
+    // Get fresh access token for each request
+    const accessToken = await getAccessToken();
+    req.mcpClient = new MCPClient(GATEWAY_URL, accessToken);
   }
   next();
 });
@@ -282,10 +318,13 @@ wss.on('connection', (ws, req) => {
       if (type === 'chat') {
         const { message: chatMessage, server = 'mcp-example' } = payload;
 
-        // Create MCP client for this WebSocket connection
-        const mcpClient = new MCPClient(GATEWAY_URL, mockUser.accessToken);
-
         try {
+          // Get fresh access token for WebSocket connection
+          const accessToken = await getAccessToken();
+
+          // Create MCP client for this WebSocket connection
+          const mcpClient = new MCPClient(GATEWAY_URL, accessToken);
+
           // Initialize if not done
           if (!mcpClient.sessionId) {
             await mcpClient.initialize(server);
