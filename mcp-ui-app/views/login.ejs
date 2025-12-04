@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Gateway - Login</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .login-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        p {
+            color: #666;
+            margin-bottom: 2rem;
+        }
+        .login-btn {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+        .login-btn:hover {
+            background: #005a9e;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>Agent Gateway MCP</h1>
+        <p>Access MCP servers with automatic Entra ID authentication</p>
+        <form action="/login" method="POST">
+            <button type="submit" class="login-btn">Sign in (Mock Authentication)</button>
+        </form>
+        <p style="font-size: 14px; color: #666; margin-top: 1rem;">
+            Note: Using mock authentication for local testing. In production, this will use Microsoft OAuth.
+        </p>
+    </div>
+</body>
+</html>
