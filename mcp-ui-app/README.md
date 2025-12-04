@@ -27,9 +27,9 @@ A web UI for the Agent Gateway that provides automatic Entra ID authentication a
 
 2. Set environment variables:
    ```bash
-   export AZURE_CLIENT_ID="your-client-id"
-   export AZURE_CLIENT_SECRET="your-client-secret"
-   export AZURE_TENANT_ID="your-tenant-id"
+   export AZURE_CLIENT_ID="11ddc0cd-e6fc-48b6-8832-de61800fb41e"
+   export AZURE_CLIENT_SECRET="your-client-secret"  # Optional for code exchange
+   export AZURE_TENANT_ID="6ba231bb-ad9e-41b9-b23d-674c80196bbd"
    export GATEWAY_URL="http://localhost:8080"
    export REDIRECT_URI="http://localhost:3000/auth/callback"
    ```
@@ -40,6 +40,31 @@ A web UI for the Agent Gateway that provides automatic Entra ID authentication a
    ```
 
 4. Open http://localhost:3000 in your browser
+
+## Authentication Methods
+
+### Method 1: Authorization Code Flow (Recommended)
+
+1. **Generate Authorization URL:**
+   ```bash
+   node generate-auth-url.js
+   ```
+
+2. **Authenticate:**
+   - Copy the generated URL and open it in a browser
+   - Sign in with your Microsoft account
+   - After authentication, you'll be redirected to a URL with a `code` parameter
+
+3. **Exchange Code:**
+   - Copy the `code` value from the redirect URL
+   - Visit http://localhost:3000
+   - Paste the code into the authorization code field
+   - Click "Exchange Code for Tokens"
+
+### Method 2: Mock Authentication (Development)
+
+- Click "Mock Authentication (Development)" for testing without real Entra ID setup
+- This bypasses authentication for development purposes
 
 ## Docker Build and Push
 

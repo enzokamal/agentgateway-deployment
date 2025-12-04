@@ -4,7 +4,8 @@
   "description": "UI for Agent Gateway with automatic Entra ID authentication",
   "main": "app.js",
   "scripts": {
-    "start": "node app.js"
+    "start": "node app.js",
+    "auth-url": "node generate-auth-url.js"
   },
   "dependencies": {
     "express": "^4.18.2",

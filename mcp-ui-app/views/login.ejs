@@ -53,12 +53,96 @@
     <div class="login-container">
         <h1>Agent Gateway MCP</h1>
         <p>Access MCP servers with automatic Entra ID authentication</p>
-        <form action="/login" method="POST">
-            <button type="submit" class="login-btn">Sign in (Mock Authentication)</button>
-        </form>
-        <p style="font-size: 14px; color: #666; margin-top: 1rem;">
-            Note: Using mock authentication for local testing. In production, this will use Microsoft OAuth.
-        </p>
+        <div id="login-section">
+            <p style="margin-bottom: 1rem;">Choose authentication method:</p>
+
+            <!-- Mock Authentication -->
+            <form action="/login" method="POST" style="margin-bottom: 1rem;">
+                <button type="submit" class="login-btn">Mock Authentication (Development)</button>
+            </form>
+
+            <!-- Authorization Code Input -->
+            <div style="border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem;">
+                <p style="font-size: 14px; color: #666; margin-bottom: 1rem;">
+                    Or enter Entra ID authorization code:
+                </p>
+                <form id="code-form">
+                    <input type="text" id="auth-code" placeholder="Paste authorization code here"
+                           style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;" required>
+                    <button type="submit" class="login-btn" style="width: 100%;">Exchange Code for Tokens</button>
+                </form>
+                <p style="font-size: 12px; color: #888; margin-top: 0.5rem;">
+                    Get code from: <code>https://login.microsoftonline.com/your-tenant/oauth2/v2.0/authorize?client_id=11ddc0cd-e6fc-48b6-8832-de61800fb41e&response_type=code&redirect_uri=http://localhost:3000/auth/callback&scope=api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default</code>
+                </p>
+            </div>
+        </div>
+
+        <div id="loading-section" style="display: none;">
+            <p style="color: #0078d4; font-size: 16px;">🔄 Exchanging authorization code for access tokens...</p>
+        </div>
+
+        <div id="error-section" style="display: none;">
+            <p style="color: #d13438; font-size: 16px;" id="error-message"></p>
+            <button onclick="resetForm()" class="login-btn" style="background: #d13438; margin-top: 1rem;">Try Again</button>
+        </div>
     </div>
+
+    <script>
+        document.getElementById('code-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const authCode = document.getElementById('auth-code').value.trim();
+            if (!authCode) {
+                showError('Please enter an authorization code');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                const response = await fetch('/auth/exchange-code', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code: authCode })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Redirect to dashboard on success
+                    window.location.href = '/';
+                } else {
+                    showError(data.error || 'Failed to exchange authorization code');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            }
+        });
+
+        function showLoading() {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('loading-section').style.display = 'block';
+            document.getElementById('error-section').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('loading-section').style.display = 'none';
+            document.getElementById('error-section').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+
+        function resetForm() {
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('loading-section').style.display = 'none';
+            document.getElementById('error-section').style.display = 'none';
+            document.getElementById('auth-code').value = '';
+        }
+
+        // Auto-focus the input field
+        document.getElementById('auth-code').focus();
+    </script>
 </body>
 </html>

@@ -199,6 +199,59 @@ app.post('/login', (req, res) => {
   res.redirect('/');
 });
 
+app.post('/auth/exchange-code', async (req, res) => {
+  const { code } = req.body;
+
+  if (!code) {
+    return res.status(400).json({ error: 'Authorization code is required' });
+  }
+
+  const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
+  const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
+  const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
+  const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
+
+  if (!AZURE_CLIENT_SECRET) {
+    return res.status(500).json({ error: 'Azure client secret not configured' });
+  }
+
+  try {
+    const tokenUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`;
+    const params = new URLSearchParams({
+      client_id: AZURE_CLIENT_ID,
+      client_secret: AZURE_CLIENT_SECRET,
+      code: code,
+      grant_type: 'authorization_code',
+      redirect_uri: REDIRECT_URI,
+      scope: 'api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default'
+    });
+
+    const response = await axios.post(tokenUrl, params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    // Store tokens in session
+    req.session.authenticated = true;
+    req.session.user = {
+      displayName: 'Authenticated User',
+      name: 'Authenticated User',
+      accessToken: response.data.access_token,
+      refreshToken: response.data.refresh_token
+    };
+
+    res.json({ success: true, message: 'Authentication successful' });
+
+  } catch (error) {
+    console.error('Token exchange error:', error.response?.data || error.message);
+    res.status(500).json({
+      error: 'Failed to exchange authorization code',
+      details: error.response?.data?.error_description || error.message
+    });
+  }
+});
+
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
@@ -206,10 +259,16 @@ app.get('/logout', (req, res) => {
 
 // Initialize MCP client for session
 app.use('/api', async (req, res, next) => {
-  if (req.session.authenticated) {
-    // Get fresh access token for each request
-    const accessToken = await getAccessToken();
-    req.mcpClient = new MCPClient(GATEWAY_URL, accessToken);
+  if (req.session.authenticated && req.session.user) {
+    // Use stored access token from session (from authorization code exchange)
+    const accessToken = req.session.user.accessToken;
+    if (accessToken) {
+      req.mcpClient = new MCPClient(GATEWAY_URL, accessToken);
+    } else {
+      // Fallback: get fresh token using client credentials
+      const freshToken = await getAccessToken();
+      req.mcpClient = new MCPClient(GATEWAY_URL, freshToken);
+    }
   }
   next();
 });
@@ -319,8 +378,18 @@ wss.on('connection', (ws, req) => {
         const { message: chatMessage, server = 'mcp-example' } = payload;
 
         try {
-          // Get fresh access token for WebSocket connection
-          const accessToken = await getAccessToken();
+          // Use stored access token from session for WebSocket connection
+          let accessToken = mockUser.accessToken; // Default fallback
+
+          // Try to get token from session if available
+          // Note: WebSocket connections don't have direct access to session
+          // In production, you'd need to pass the token in the WebSocket connection
+          try {
+            const freshToken = await getAccessToken();
+            accessToken = freshToken;
+          } catch (tokenError) {
+            console.warn('Using fallback token for WebSocket:', tokenError.message);
+          }
 
           // Create MCP client for this WebSocket connection
           const mcpClient = new MCPClient(GATEWAY_URL, accessToken);
