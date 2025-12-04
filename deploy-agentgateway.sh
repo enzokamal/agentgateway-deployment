@@ -279,7 +279,7 @@ spec:
       serviceAccountName: mcp-ui-sa  
       containers:
       - name: mcp-ui
-        image: ${MCP_UI_IMAGE:-kamalberrybytes/mcp-ui:latest}
+        image: kamalberrybytes/mcp-ui:latest
         imagePullPolicy: Always  
         ports:
         - containerPort: 3000
