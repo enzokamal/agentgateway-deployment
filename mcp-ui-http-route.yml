@@ -11,6 +11,19 @@ spec:
     - path:
         type: PathPrefix
         value: /ui
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
+    backendRefs:
+    - name: mcp-ui-service
+      port: 3000
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /auth
     backendRefs:
     - name: mcp-ui-service
       port: 3000

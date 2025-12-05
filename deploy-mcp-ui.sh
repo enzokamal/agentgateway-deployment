@@ -172,7 +172,7 @@ spec:
         - name: GATEWAY_URL
           value: "http://agentgateway.default.svc.cluster.local:8080"
         - name: REDIRECT_URI
-          value: "http://localhost:3000/auth/callback"
+          value: "https://40.90.239.128/auth/callback"
         - name: NODE_ENV
           value: "production"
 EOF
