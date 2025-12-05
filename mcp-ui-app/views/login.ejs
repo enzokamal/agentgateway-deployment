@@ -102,7 +102,7 @@
         let authPopup = null;
 
         function authenticateWithEntraID() {
-            const authUrl = `https://login.microsoftonline.com/<%= 6ba231bb-ad9e-41b9-b23d-674c80196bbd %>/oauth2/v2.0/authorize?client_id=<%= 11ddc0cd-e6fc-48b6-8832-de61800fb41e %>&response_type=code&redirect_uri=<%= encodeURIComponent(https://40.90.239.128:3000/auth/callback) %>&scope=openid%20api%3A%2F%2F<%= 11ddc0cd-e6fc-48b6-8832-de61800fb41e %>%2Fmcp.access`;
+            const authUrl = `https://login.microsoftonline.com/<%= AZURE_TENANT_ID %>/oauth2/v2.0/authorize?client_id=<%= AZURE_CLIENT_ID %>&response_type=code&redirect_uri=<%= encodeURIComponent(REDIRECT_URI) %>&scope=openid%20api%3A%2F%2F<%= AZURE_CLIENT_ID %>%2Fmcp.access`;
             authPopup = window.open(authUrl, 'entra-auth', 'width=600,height=700,scrollbars=yes,resizable=yes');
         }
 

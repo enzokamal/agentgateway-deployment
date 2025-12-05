@@ -12,7 +12,7 @@ const port = process.env.PORT || 3000;
 const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
 const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
 const GATEWAY_URL = process.env.GATEWAY_URL || 'http://40.90.239.128:8000';
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://40.90.239.128:3000/auth/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || '';
 
 // Mock user for local testing
 const mockUser = {
@@ -228,7 +228,6 @@ app.get('/auth/callback', async (req, res) => {
       const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
       const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET || '';
       const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
-      const REDIRECT_URI = process.env.REDIRECT_URI || 'http://40.90.239.128:3000/auth/callback';
 
       if (!AZURE_CLIENT_SECRET) {
         throw new Error('Azure client secret not configured');
@@ -385,7 +384,6 @@ app.post('/auth/exchange-code', async (req, res) => {
   const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
   const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
   const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
-  const REDIRECT_URI = process.env.REDIRECT_URI || 'http://40.90.239.128:3000/auth/callback';
 
   if (!AZURE_CLIENT_SECRET) {
     return res.status(500).json({ error: 'Azure client secret not configured' });

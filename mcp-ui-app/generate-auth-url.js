@@ -4,7 +4,7 @@
 
 const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
 const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:4000/auth/callback';
 
 const authUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/authorize?` +
   new URLSearchParams({
