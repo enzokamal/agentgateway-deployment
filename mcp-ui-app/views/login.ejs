@@ -61,22 +61,29 @@
                 <button type="submit" class="login-btn">Mock Authentication (Development)</button>
             </form>
 
-            <!-- Authorization Code Input -->
+            <!-- Entra ID Authentication -->
             <div style="border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem;">
                 <p style="font-size: 14px; color: #666; margin-bottom: 1rem;">
-                    Or authenticate with Entra ID:
+                    Authenticate with Entra ID:
                 </p>
-                <button onclick="openAuthUrl()" class="login-btn" style="width: 100%; margin-bottom: 1rem;">🔗 Open Entra ID Login</button>
+                <button onclick="authenticateWithEntraID()" class="login-btn" style="width: 100%; margin-bottom: 1rem;">🔐 Authenticate with Entra ID</button>
                 <p style="font-size: 12px; color: #666; margin-bottom: 1rem; text-align: center;">
-                    (You'll be redirected back with the authorization code)
+                    (A popup will open for authentication)
                 </p>
-                <form id="code-form">
-                    <input type="text" id="auth-code" placeholder="Paste authorization code here"
-                           style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; box-sizing: border-box;" required>
-                    <button type="submit" class="login-btn" style="width: 100%;">Exchange Code for Tokens</button>
+            </div>
+
+            <!-- Manual Token Input -->
+            <div style="border-top: 1px solid #eee; padding-top: 1rem; margin-top: 1rem;">
+                <p style="font-size: 14px; color: #666; margin-bottom: 1rem;">
+                    Or paste your Entra ID access token:
+                </p>
+                <form id="token-form">
+                    <textarea id="manual-token" placeholder="Paste your JWT access token here..."
+                              style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 1px solid #ddd; border-radius: 4px; font-size: 12px; font-family: monospace; min-height: 80px; resize: vertical; box-sizing: border-box;" required></textarea>
+                    <button type="submit" class="login-btn" style="width: 100%;">🔑 Use Manual Token</button>
                 </form>
-                <p style="font-size: 12px; color: #888; margin-top: 0.5rem;">
-                    Manual URL: <code>https://login.microsoftonline.com/<%= AZURE_TENANT_ID %>/oauth2/v2.0/authorize?client_id=<%= AZURE_CLIENT_ID %>&response_type=code&redirect_uri=<%= encodeURIComponent(REDIRECT_URI) %>&scope=openid%20api://<%= AZURE_CLIENT_ID %>/.default</code>
+                <p style="font-size: 11px; color: #888; margin-top: 0.5rem; text-align: center;">
+                    For development/testing - paste token from Azure portal or Cline config
                 </p>
             </div>
         </div>
@@ -92,24 +99,32 @@
     </div>
 
     <script>
-        document.getElementById('code-form').addEventListener('submit', async (e) => {
+        let authPopup = null;
+
+        function authenticateWithEntraID() {
+            const authUrl = `https://login.microsoftonline.com/<%= AZURE_TENANT_ID %>/oauth2/v2.0/authorize?client_id=<%= AZURE_CLIENT_ID %>&response_type=code&redirect_uri=<%= encodeURIComponent(REDIRECT_URI) %>&scope=openid%20api%3A%2F%2F<%= AZURE_CLIENT_ID %>%2Fmcp.access`;
+            authPopup = window.open(authUrl, 'entra-auth', 'width=600,height=700,scrollbars=yes,resizable=yes');
+        }
+
+        // Handle manual token form submission
+        document.getElementById('token-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const authCode = document.getElementById('auth-code').value.trim();
-            if (!authCode) {
-                showError('Please enter an authorization code');
+            const token = document.getElementById('manual-token').value.trim();
+            if (!token) {
+                showError('Please enter an access token');
                 return;
             }
 
             showLoading();
 
             try {
-                const response = await fetch('/auth/exchange-code', {
+                const response = await fetch('/auth/manual-token', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ code: authCode })
+                    body: JSON.stringify({ token: token })
                 });
 
                 const data = await response.json();
@@ -118,7 +133,7 @@
                     // Redirect to dashboard on success
                     window.location.href = '/';
                 } else {
-                    showError(data.error || 'Failed to exchange authorization code');
+                    showError(data.error || 'Failed to authenticate with manual token');
                 }
             } catch (error) {
                 showError('Network error: ' + error.message);
@@ -142,16 +157,56 @@
             document.getElementById('login-section').style.display = 'block';
             document.getElementById('loading-section').style.display = 'none';
             document.getElementById('error-section').style.display = 'none';
-            document.getElementById('auth-code').value = '';
+            document.getElementById('manual-token').value = '';
         }
 
-        function openAuthUrl() {
-            const authUrl = `https://login.microsoftonline.com/<%= AZURE_TENANT_ID %>/oauth2/v2.0/authorize?client_id=<%= AZURE_CLIENT_ID %>&response_type=code&redirect_uri=<%= encodeURIComponent(REDIRECT_URI) %>&scope=openid%20api%3A%2F%2F<%= AZURE_CLIENT_ID %>%2F.default`;
-            window.open(authUrl, '_blank');
-        }
+        // Listen for messages from the popup
+        window.addEventListener('message', async (event) => {
+            // For security, you might want to check event.origin
+            if (event.data.type === 'auth_success') {
+                showLoading();
 
-        // Auto-focus the input field
-        document.getElementById('auth-code').focus();
+                try {
+                    // Send tokens to server to store in session
+                    const response = await fetch('/auth/store-tokens', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            access_token: event.data.access_token,
+                            refresh_token: event.data.refresh_token,
+                            id_token: event.data.id_token
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        // Redirect to dashboard on success
+                        window.location.href = '/';
+                    } else {
+                        showError(data.error || 'Failed to store authentication tokens');
+                    }
+                } catch (error) {
+                    showError('Network error: ' + error.message);
+                }
+
+                // Close popup if still open
+                if (authPopup && !authPopup.closed) {
+                    authPopup.close();
+                }
+            } else if (event.data.type === 'auth_error') {
+                showError(`Authentication failed: ${event.data.description || event.data.error}`);
+
+                // Close popup if still open
+                if (authPopup && !authPopup.closed) {
+                    authPopup.close();
+                }
+            }
+        });
     </script>
 </body>
 </html>
+
+
