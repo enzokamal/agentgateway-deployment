@@ -3,6 +3,7 @@ const session = require('express-session');
 const axios = require('axios');
 const WebSocket = require('ws');
 const { v4: uuidv4 } = require('uuid');
+const requestId = uuidv4();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -10,8 +11,8 @@ const port = process.env.PORT || 3000;
 // Environment variables
 const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
 const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
-const GATEWAY_URL = process.env.GATEWAY_URL || 'http://localhost:8080';
-const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
+const GATEWAY_URL = process.env.GATEWAY_URL || 'http://40.90.239.128:8000';
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://40.90.239.128:3000/auth/callback';
 
 // Mock user for local testing
 const mockUser = {
@@ -23,7 +24,7 @@ const mockUser = {
 // Function to get access token using client credentials
 async function getAccessToken() {
   const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
-  const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
+  const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET || '';
   const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
 
   if (!AZURE_CLIENT_SECRET) {
@@ -54,25 +55,24 @@ async function getAccessToken() {
   }
 }
 
+
 // MCP Protocol Client
 class MCPClient {
   constructor(gatewayUrl, accessToken) {
     this.gatewayUrl = gatewayUrl;
     this.accessToken = accessToken;
-    this.sessionId = null;
+    this.sessionId = null; // Initialize sessionId to null
   }
 
   async initialize(server = 'mcp-example') {
     try {
       const response = await axios.post(`${this.gatewayUrl}/mcp/${server}`, {
         jsonrpc: '2.0',
-        id: uuidv4(),
+        id: 1,
         method: 'initialize',
         params: {
           protocolVersion: '2024-11-05',
-          capabilities: {
-            tools: {}
-          },
+          capabilities: {},
           clientInfo: {
             name: 'mcp-ui-client',
             version: '1.0.0'
@@ -81,11 +81,19 @@ class MCPClient {
       }, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'MCP-Protocol-Version': '2024-11-05',
+          'Accept': 'application/json,text/event-stream'
         }
       });
 
-      this.sessionId = response.data.result?.sessionId;
+      // CRITICAL: Use the session ID returned by the server
+      if (response.data.result?.sessionId) {
+        this.sessionId = response.data.result.sessionId;
+        console.log('MCP Session initialized with server sessionId:', this.sessionId);
+      } else {
+        console.warn('No sessionId returned by server, using client-generated sessionId:', this.sessionId);
+      }
       return response.data;
     } catch (error) {
       console.error('MCP Initialize error:', error.response?.data || error.message);
@@ -97,13 +105,16 @@ class MCPClient {
     try {
       const response = await axios.post(`${this.gatewayUrl}/mcp/${server}`, {
         jsonrpc: '2.0',
-        id: uuidv4(),
+        id: this.sessionId,
         method: 'tools/list',
         params: {}
       }, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'MCP-Protocol-Version': '2024-11-05',
+          'Accept': 'application/json,text/event-stream',
+          'MCP-Session-Id': this.sessionId
         }
       });
 
@@ -116,9 +127,10 @@ class MCPClient {
 
   async callTool(server = 'mcp-example', toolName, args = {}) {
     try {
+      console.log("session id:", this.sessionId)
       const response = await axios.post(`${this.gatewayUrl}/mcp/${server}`, {
         jsonrpc: '2.0',
-        id: uuidv4(),
+        id: this.sessionId,
         method: 'tools/call',
         params: {
           name: toolName,
@@ -127,49 +139,55 @@ class MCPClient {
       }, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Accept': 'application/json,text/event-stream',
+          'MCP-Protocol-Version': '2024-11-05',
+          'MCP-Session-Id': this.sessionId
         }
       });
+      
 
       return response.data;
     } catch (error) {
       console.error('MCP Call Tool error:', error.response?.data || error.message);
+      // console.log("Error from call tool function", error)
       throw error;
     }
   }
 
   async chat(server = 'mcp-example', message) {
-    try {
-      // For chat, we'll use a generic tool call or resources
-      // This is a simplified implementation - in reality you'd have specific chat tools
-      const response = await axios.post(`${this.gatewayUrl}/mcp/${server}`, {
-        jsonrpc: '2.0',
-        id: uuidv4(),
-        method: 'tools/call',
-        params: {
-          name: 'chat',
-          arguments: {
-            message: message,
-            session_id: this.sessionId
-          }
-        }
-      }, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+    // Try different tools in order of preference
+    const toolsToTry = ['query', 'chat', 'search'];
 
-      return response.data;
-    } catch (error) {
-      // Fallback: try to use a generic query tool
+    for (const toolName of toolsToTry) {
       try {
-        return await this.callTool(server, 'query', { question: message });
-      } catch (fallbackError) {
-        console.error('MCP Chat fallback error:', fallbackError.message);
-        throw error;
+        const response = await axios.post(`${this.gatewayUrl}/mcp/${server}`, {
+          jsonrpc: '2.0',
+          id: this.sessionId,
+          method: 'tools/call',
+          params: {
+            name: toolName,
+            arguments: toolName === 'query' ? { question: message } : { message: message }
+          }
+        }, {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json',
+            'MCP-Protocol-Version': '2024-11-05',
+            'Accept': 'application/json,text/event-stream',
+            'MCP-Session-Id': this.sessionId
+          }
+        });
+
+        return response.data;
+      } catch (error) {
+        console.warn(`Tool '${toolName}' failed:`, error.response?.status || error.message);
+        // Continue to next tool
       }
     }
+
+    // If all tools failed, throw an error
+    throw new Error('No suitable chat tool available on the MCP server');
   }
 }
 
@@ -184,55 +202,158 @@ app.use(session({
 app.set('view engine', 'ejs');
 
 // Routes
-app.get('/auth/callback', (req, res) => {
+app.get('/auth/callback', async (req, res) => {
   const { code, error, error_description } = req.query;
 
   if (error) {
     return res.send(`
       <html>
+        <head><title>Authentication Error</title></head>
         <body style="font-family: Arial, sans-serif; padding: 20px;">
           <h2>Authentication Error</h2>
           <p><strong>Error:</strong> ${error}</p>
           <p><strong>Description:</strong> ${error_description || 'No description provided'}</p>
-          <p><a href="/">← Back to Login</a></p>
-        </body>
-      </html>
-    `);
-  }
-
-  if (code) {
-    return res.send(`
-      <html>
-        <body style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Authorization Code Received</h2>
-          <p>Copy this authorization code and paste it in the login form:</p>
-          <textarea readonly style="width: 100%; height: 100px; padding: 10px; font-family: monospace; font-size: 14px;">${code}</textarea>
-          <br><br>
-          <button onclick="copyToClipboard()" style="padding: 10px 20px; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer;">Copy to Clipboard</button>
-          <br><br>
-          <p><a href="/">← Back to Login</a></p>
           <script>
-            function copyToClipboard() {
-              const textarea = document.querySelector('textarea');
-              textarea.select();
-              document.execCommand('copy');
-              alert('Code copied to clipboard!');
-            }
+            window.opener.postMessage({ type: 'auth_error', error: '${error}', description: '${error_description || ''}' }, '*');
+            window.close();
           </script>
         </body>
       </html>
     `);
   }
 
+  if (code) {
+    try {
+      // Automatically exchange the code for tokens
+      const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
+      const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET || '';
+      const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
+      const REDIRECT_URI = process.env.REDIRECT_URI || 'http://40.90.239.128:3000/auth/callback';
+
+      if (!AZURE_CLIENT_SECRET) {
+        throw new Error('Azure client secret not configured');
+      }
+
+      const tokenUrl = `https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token`;
+      const params = new URLSearchParams({
+        client_id: AZURE_CLIENT_ID,
+        client_secret: AZURE_CLIENT_SECRET,
+        code: code,
+        grant_type: 'authorization_code',
+        redirect_uri: REDIRECT_URI,
+        scope: 'openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default'
+      });
+
+      const response = await axios.post(tokenUrl, params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      // Store tokens in session (this won't work in popup, need to pass to parent)
+      // Instead, we'll send the tokens to the parent window
+
+      return res.send(`
+        <html>
+          <head><title>Authentication Successful</title></head>
+          <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Authentication Successful</h2>
+            <p>You will be redirected shortly...</p>
+            <script>
+              // Send tokens to parent window
+              window.opener.postMessage({
+                type: 'auth_success',
+                access_token: '${response.data.access_token}',
+                refresh_token: '${response.data.refresh_token || ''}',
+                id_token: '${response.data.id_token || ''}'
+              }, '*');
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+
+    } catch (error) {
+      console.error('Token exchange error in callback:', error.response?.data || error.message);
+      return res.send(`
+        <html>
+          <head><title>Authentication Error</title></head>
+          <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Token Exchange Failed</h2>
+            <p>Failed to exchange authorization code for access token.</p>
+            <p>Error: ${error.response?.data?.error_description || error.message}</p>
+            <script>
+              window.opener.postMessage({
+                type: 'auth_error',
+                error: 'token_exchange_failed',
+                description: '${error.response?.data?.error_description || error.message}'
+              }, '*');
+              window.close();
+            </script>
+          </body>
+        </html>
+      `);
+    }
+  }
+
   res.send(`
     <html>
+      <head><title>No Authorization Code</title></head>
       <body style="font-family: Arial, sans-serif; padding: 20px;">
         <h2>No Authorization Code</h2>
         <p>No authorization code was received. Please try the authentication process again.</p>
-        <p><a href="/">← Back to Login</a></p>
+        <script>
+          window.opener.postMessage({ type: 'auth_error', error: 'no_code', description: 'No authorization code received' }, '*');
+          window.close();
+        </script>
       </body>
     </html>
   `);
+});
+
+app.post('/auth/store-tokens', (req, res) => {
+  const { access_token, refresh_token, id_token } = req.body;
+
+  if (!access_token) {
+    return res.status(400).json({ error: 'Access token is required' });
+  }
+
+  // Store tokens in session
+  req.session.authenticated = true;
+  req.session.user = {
+    displayName: 'Authenticated User',
+    name: 'Authenticated User',
+    accessToken: access_token,
+    refreshToken: refresh_token,
+    idToken: id_token
+  };
+
+  res.json({ success: true, message: 'Authentication successful' });
+});
+
+app.post('/auth/manual-token', (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ error: 'Token is required' });
+  }
+
+  // Validate that it's a JWT token (basic check)
+  if (!token.includes('.') || token.split('.').length !== 3) {
+    return res.status(400).json({ error: 'Invalid token format' });
+  }
+
+  // Store token in session
+  req.session.authenticated = true;
+  req.session.user = {
+    displayName: 'Manual Token User',
+    name: 'Manual Token User',
+    accessToken: token,
+    refreshToken: null,
+    idToken: null
+  };
+
+  res.json({ success: true, message: 'Manual token authentication successful' });
 });
 
 app.get('/', (req, res) => {
@@ -264,7 +385,7 @@ app.post('/auth/exchange-code', async (req, res) => {
   const AZURE_CLIENT_ID = process.env.AZURE_CLIENT_ID || '11ddc0cd-e6fc-48b6-8832-de61800fb41e';
   const AZURE_CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET;
   const AZURE_TENANT_ID = process.env.AZURE_TENANT_ID || '6ba231bb-ad9e-41b9-b23d-674c80196bbd';
-  const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3000/auth/callback';
+  const REDIRECT_URI = process.env.REDIRECT_URI || 'http://40.90.239.128:3000/auth/callback';
 
   if (!AZURE_CLIENT_SECRET) {
     return res.status(500).json({ error: 'Azure client secret not configured' });
@@ -278,7 +399,7 @@ app.post('/auth/exchange-code', async (req, res) => {
       code: code,
       grant_type: 'authorization_code',
       redirect_uri: REDIRECT_URI,
-      scope: 'openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default'
+      scope: 'api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/.default'
     });
 
     const response = await axios.post(tokenUrl, params, {
@@ -310,6 +431,7 @@ app.post('/auth/exchange-code', async (req, res) => {
 app.get('/logout', (req, res) => {
   req.session.destroy();
   res.redirect('/');
+
 });
 
 // Initialize MCP client for session
@@ -334,11 +456,20 @@ app.get('/api/mcp/:server', async (req, res) => {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
+  const accessToken = req.session.user?.accessToken;
+  if (!accessToken) {
+    return res.status(401).json({ error: 'No access token available' });
+  }
+
   try {
     const response = await axios.get(`${GATEWAY_URL}/mcp/${req.params.server}`, {
       headers: {
-        'Authorization': `Bearer ${mockUser.accessToken}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        // 'Accept': 'application/json'
+        'Accept': 'application/json,text/event-stream',
+        'MCP-Protocol-Version': '2024-11-05'
+        // Note: These proxy routes don't maintain session state
       }
     });
     res.json(response.data);
@@ -352,11 +483,20 @@ app.post('/api/mcp/:server', async (req, res) => {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
+  const accessToken = req.session.user?.accessToken;
+  if (!accessToken) {
+    return res.status(401).json({ error: 'No access token available' });
+  }
+
   try {
     const response = await axios.post(`${GATEWAY_URL}/mcp/${req.params.server}`, req.body, {
       headers: {
-        'Authorization': `Bearer ${mockUser.accessToken}`,
-        'Content-Type': 'application/json'
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        // 'Accept': 'application/json'
+        'Accept': 'application/json,text/event-stream',
+        'MCP-Protocol-Version': '2024-11-05'
+        // Note: These proxy routes don't maintain session state
       }
     });
     res.json(response.data);
@@ -375,6 +515,7 @@ app.post('/api/chat/initialize', async (req, res) => {
 
   try {
     const result = await req.mcpClient.initialize(server);
+    console.log("Using server-assigned session:", req.mcpClient.sessionId);
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -421,8 +562,22 @@ app.post('/api/chat/message', async (req, res) => {
 // WebSocket server for real-time chat
 const wss = new WebSocket.Server({ noServer: true });
 
-wss.on('connection', (ws, req) => {
+wss.on('connection', async (ws, req) => {
   console.log('WebSocket client connected');
+
+  // Get access token for this WebSocket connection
+  let accessToken = mockUser.accessToken; // Default fallback
+
+  // Try to get fresh token
+  try {
+    const freshToken = await getAccessToken();
+    accessToken = freshToken;
+  } catch (tokenError) {
+    console.warn('Using fallback token for WebSocket:', tokenError.message);
+  }
+
+  const mcpClient = new MCPClient(GATEWAY_URL, accessToken);
+  ws.mcpClient = mcpClient;
 
   ws.on('message', async (data) => {
     try {
@@ -433,32 +588,16 @@ wss.on('connection', (ws, req) => {
         const { message: chatMessage, server = 'mcp-example' } = payload;
 
         try {
-          // Use stored access token from session for WebSocket connection
-          let accessToken = mockUser.accessToken; // Default fallback
-
-          // Try to get token from session if available
-          // Note: WebSocket connections don't have direct access to session
-          // In production, you'd need to pass the token in the WebSocket connection
-          try {
-            const freshToken = await getAccessToken();
-            accessToken = freshToken;
-          } catch (tokenError) {
-            console.warn('Using fallback token for WebSocket:', tokenError.message);
-          }
-
-          // Create MCP client for this WebSocket connection
-          const mcpClient = new MCPClient(GATEWAY_URL, accessToken);
-
           // Initialize if not done
-          if (!mcpClient.sessionId) {
-            await mcpClient.initialize(server);
+          if (!ws.mcpClient.sessionId) {
+            await ws.mcpClient.initialize(server);
           }
 
           // Send typing indicator
           ws.send(JSON.stringify({ type: 'typing', payload: { status: true } }));
 
           // Get response from MCP
-          const result = await mcpClient.chat(server, chatMessage);
+          const result = await ws.mcpClient.chat(server, chatMessage);
 
           // Send response
           ws.send(JSON.stringify({
@@ -492,7 +631,7 @@ wss.on('connection', (ws, req) => {
 });
 
 const server = app.listen(port, () => {
-  console.log(`MCP UI app listening at http://localhost:${port}`);
+  console.log(`MCP UI app listening at http://40.90.239.128:${port}`);
 });
 
 // Handle WebSocket upgrade

@@ -158,27 +158,37 @@
         async function callServer(serverName) {
             const responseDiv = document.getElementById(`response-${serverName}`);
             responseDiv.style.display = 'block';
-            responseDiv.textContent = 'Loading...';
+            responseDiv.textContent = 'Testing MCP connection...';
 
             try {
-                const response = await fetch(`/api/mcp/${serverName}`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+                const response = await fetch('/api/chat/initialize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json,text/event-stream'  // ← NO SPACE after comma
+                },
+                body: JSON.stringify({ server: serverName })
+            });
 
-                const data = await response.json();
+                // MCP might return streaming response, so try reading JSON safely
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    data = { error: 'Server did not return JSON (may be streaming events)' };
+                }
 
-                if (response.ok) {
-                    responseDiv.textContent = JSON.stringify(data, null, 2);
+                if (response.ok && data.success) {
+                    responseDiv.textContent = '✅ Connection successful!\n\n' + JSON.stringify(data.data, null, 2);
                 } else {
-                    responseDiv.textContent = `Error: ${data.error}`;
+                    responseDiv.textContent = `❌ Connection failed: ${data.error || 'Unknown error'}`;
                 }
             } catch (error) {
-                responseDiv.textContent = `Error: ${error.message}`;
+                responseDiv.textContent = `❌ Error: ${error.message}`;
             }
         }
+
+
 
         function selectServer(serverName) {
             currentServer = serverName;
@@ -294,7 +304,8 @@
                 const response = await fetch('/api/chat/message', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json,text/event-stream'  // ← NO SPACE after comma
                     },
                     body: JSON.stringify({
                         message: message,

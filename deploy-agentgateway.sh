@@ -289,11 +289,11 @@ spec:
         - name: AZURE_TENANT_ID
           value: "${AZURE_TENANT_ID:-6ba231bb-ad9e-41b9-b23d-674c80196bbd}"
         - name: AZURE_CLIENT_SECRET
-          value: "${AZURE_CLIENT_SECRET:-IqT8Q~r6in1pFmUsJFMKTTQg6g6Qzo.AtN1Bwbm1}"
+          value: "${AZURE_CLIENT_SECRET:-}" 
         - name: GATEWAY_URL
           value: "http://agentgateway.default.svc.cluster.local:8080"
         - name: REDIRECT_URI
-          value: "http://localhost:3000/auth/callback"
+          value: "http://localhost:3000/auth/callback"  
 ---
 apiVersion: v1
 kind: Service
