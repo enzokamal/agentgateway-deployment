@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MCP Gateway Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: #f5f5f5;
+        }
+        .header {
+            background: #0078d4;
+            color: white;
+            padding: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 {
+            margin: 0;
+        }
+        .logout-btn {
+            background: #d13438;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+        .welcome {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .servers {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+        }
+        .server-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .server-card h3 {
+            margin-top: 0;
+            color: #0078d4;
+        }
+        .server-btn {
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .server-btn:hover {
+            background: #005a9e;
+        }
+        .response {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Agent Gateway MCP Dashboard</h1>
+        <a href="/logout" class="logout-btn">Logout</a>
+    </div>
+
+    <div class="container">
+        <div class="welcome">
+            <h2>Welcome, <%= user.displayName || user.name || 'User' %></h2>
+            <p>You are authenticated and can access MCP servers through the gateway.</p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; margin-top: 2rem;">
+            <!-- Server Management Panel -->
+            <div>
+                <h2 style="color: #0078d4; margin-bottom: 1rem;">MCP Servers</h2>
+                <div class="servers">
+                    <div class="server-card">
+                        <h3>MCP Example Server</h3>
+                        <p>A general-purpose MCP server for testing and examples.</p>
+                        <button class="server-btn" onclick="callServer('mcp-example')">Test Connection</button>
+                        <button class="server-btn" style="background: #28a745;" onclick="selectServer('mcp-example')">Chat with Server</button>
+                        <div id="response-mcp-example" class="response" style="display: none;"></div>
+                    </div>
+
+                    <div class="server-card">
+                        <h3>MCP HubSpot Server</h3>
+                        <p>Access HubSpot CRM data and operations.</p>
+                        <button class="server-btn" onclick="callServer('mcp-hubspot')">Test Connection</button>
+                        <button class="server-btn" style="background: #28a745;" onclick="selectServer('mcp-hubspot')">Chat with Server</button>
+                        <div id="response-mcp-hubspot" class="response" style="display: none;"></div>
+                    </div>
+
+                    <div class="server-card">
+                        <h3>MCP SQL Server</h3>
+                        <p>Query and manage SQL databases.</p>
+                        <button class="server-btn" onclick="callServer('mcp-mssql')">Test Connection</button>
+                        <button class="server-btn" style="background: #28a745;" onclick="selectServer('mcp-mssql')">Chat with Server</button>
+                        <div id="response-mcp-mssql" class="response" style="display: none;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Interface -->
+            <div>
+                <h2 style="color: #0078d4; margin-bottom: 1rem;">Chat with MCP Server</h2>
+                <div id="chat-container" style="background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 600px; display: flex; flex-direction: column;">
+                    <div id="chat-header" style="padding: 1rem; border-bottom: 1px solid #eee; background: #f8f9fa; border-radius: 8px 8px 0 0;">
+                        <strong>Selected Server:</strong> <span id="selected-server">None</span>
+                        <div id="typing-indicator" style="display: none; color: #666; font-style: italic; margin-top: 0.5rem;">Server is typing...</div>
+                    </div>
+
+                    <div id="chat-messages" style="flex: 1; padding: 1rem; overflow-y: auto; background: #fafafa;">
+                        <div style="text-align: center; color: #666; margin-top: 2rem;">
+                            Select a server to start chatting
+                        </div>
+                    </div>
+
+                    <div id="chat-input" style="padding: 1rem; border-top: 1px solid #eee; background: white; border-radius: 0 0 8px 8px; display: none;">
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="text" id="message-input" placeholder="Ask a question..." style="flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                            <button id="send-button" onclick="sendMessage()" style="padding: 0.75rem 1.5rem; background: #0078d4; color: white; border: none; border-radius: 4px; cursor: pointer;">Send</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentServer = null;
+        let ws = null;
+
+        async function callServer(serverName) {
+            const responseDiv = document.getElementById(`response-${serverName}`);
+            responseDiv.style.display = 'block';
+            responseDiv.textContent = 'Testing MCP connection...';
+
+            try {
+                const response = await fetch('/api/chat/initialize', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json,text/event-stream'  // ← NO SPACE after comma
+                },
+                body: JSON.stringify({ server: serverName })
+            });
+
+                // MCP might return streaming response, so try reading JSON safely
+                let data;
+                try {
+                    data = await response.json();
+                } catch (jsonError) {
+                    data = { error: 'Server did not return JSON (may be streaming events)' };
+                }
+
+                if (response.ok && data.success) {
+                    responseDiv.textContent = '✅ Connection successful!\n\n' + JSON.stringify(data.data, null, 2);
+                } else {
+                    responseDiv.textContent = `❌ Connection failed: ${data.error || 'Unknown error'}`;
+                }
+            } catch (error) {
+                responseDiv.textContent = `❌ Error: ${error.message}`;
+            }
+        }
+
+
+
+        function selectServer(serverName) {
+            currentServer = serverName;
+            document.getElementById('selected-server').textContent = serverName;
+            document.getElementById('chat-input').style.display = 'block';
+            document.getElementById('chat-messages').innerHTML = `
+                <div style="text-align: center; color: #666; margin-top: 2rem;">
+                    Connected to ${serverName}. Start chatting!
+                </div>
+            `;
+
+            // Initialize WebSocket connection
+            if (ws) {
+                ws.close();
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                handleWebSocketMessage(data);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+                addMessage('System', 'Connection error. Please refresh and try again.', 'system');
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+            };
+        }
+
+        function handleWebSocketMessage(data) {
+            const { type, payload } = data;
+
+            switch (type) {
+                case 'response':
+                    addMessage('MCP Server', payload.message, 'server');
+                    break;
+                case 'typing':
+                    document.getElementById('typing-indicator').style.display = payload.status ? 'block' : 'none';
+                    break;
+                case 'error':
+                    addMessage('System', `Error: ${payload.message}`, 'system');
+                    break;
+            }
+        }
+
+        function addMessage(sender, message, type) {
+            const messagesDiv = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.style.cssText = `
+                margin-bottom: 1rem;
+                padding: 0.75rem;
+                border-radius: 8px;
+                max-width: 80%;
+            `;
+
+            if (type === 'user') {
+                messageDiv.style.cssText += 'background: #0078d4; color: white; margin-left: auto;';
+            } else if (type === 'server') {
+                messageDiv.style.cssText += 'background: #f0f0f0; color: #333; margin-right: auto;';
+            } else if (type === 'system') {
+                messageDiv.style.cssText += 'background: #fff3cd; color: #856404; text-align: center; max-width: 100%;';
+            }
+
+            messageDiv.innerHTML = `
+                <strong>${sender}:</strong><br>
+                ${message.replace(/\n/g, '<br>')}
+            `;
+
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+
+            if (!message || !currentServer) {
+                return;
+            }
+
+            // Add user message to chat
+            addMessage('You', message, 'user');
+            input.value = '';
+
+            // Send via WebSocket
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'chat',
+                    payload: {
+                        message: message,
+                        server: currentServer
+                    }
+                }));
+            } else {
+                // Fallback to HTTP API
+                sendMessageHTTP(message);
+            }
+        }
+
+        async function sendMessageHTTP(message) {
+            try {
+                document.getElementById('typing-indicator').style.display = 'block';
+
+                const response = await fetch('/api/chat/message', {
+                    method: 'POST',
+                    headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json,text/event-stream'  // ← NO SPACE after comma
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        server: currentServer
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    addMessage('MCP Server', data.response, 'server');
+                } else {
+                    addMessage('System', `Error: ${data.error || 'Unknown error'}`, 'system');
+                }
+            } catch (error) {
+                addMessage('System', `Error: ${error.message}`, 'system');
+            } finally {
+                document.getElementById('typing-indicator').style.display = 'none';
+            }
+        }
+
+        // Handle Enter key in input
+        document.getElementById('message-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
