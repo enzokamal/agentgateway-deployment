@@ -23,7 +23,7 @@ spec:
       serviceAccountName: mcp-ui-sa
       containers:
       - name: mcp-ui
-        image: your-dockerhub-username/mcp-ui:latest
+        image: kamalberrybytes/mcp-ui-app:1.0.0
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
@@ -34,8 +34,10 @@ spec:
           value: "6ba231bb-ad9e-41b9-b23d-674c80196bbd"
         - name: GATEWAY_URL
           value: "http://agentgateway.default.svc.cluster.local:8080"
+        - name: AZURE_CLIENT_SECRET
+          value: ""
         - name: REDIRECT_URI
-          value: "https://localhost:4000/auth/callback"
+          value: "http://localhost:4000/auth/callback"
 ---
 apiVersion: v1
 kind: Service

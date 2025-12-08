@@ -49,7 +49,7 @@ check_prerequisites() {
 
 deploy_gateway_api_crds() {
     echo_info "Deploying Kubernetes Gateway API CRDs..."
-    kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml
+    kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.0/standard-install.yaml
     echo_info "Gateway API CRDs deployed successfully!"
 }
 
@@ -88,23 +88,27 @@ wait_for_kgateway() {
 create_agentgateway_proxy() {
     echo_info "Creating agentgateway proxy..."
     
-    cat <<EOF | kubectl apply -f -
-kind: Gateway
-apiVersion: gateway.networking.k8s.io/v1
-metadata:
-  name: agentgateway
-  labels:
-    app: agentgateway
-spec:
-  gatewayClassName: agentgateway
-  listeners:
-  - protocol: HTTP
-    port: 8080
-    name: http
-    allowedRoutes:
-      namespaces:
-        from: All
-EOF
+#     cat <<EOF | kubectl apply -f -
+# kind: Gateway
+# apiVersion: gateway.networking.k8s.io/v1
+# metadata:
+#   name: agentgateway
+#   labels:
+#     app: agentgateway
+# spec:
+#   gatewayClassName: agentgateway
+#   listeners:
+#   - protocol: HTTP
+#     port: 8080
+#     name: http
+#     allowedRoutes:
+#       namespaces:
+#         from: All
+# EOF
+
+    ## Deploy the agentgateway proxy
+    kubectl apply -f mcpagentcontrolplane/mcp-gateway-proxy.yml
+
     
     echo_info "agentgateway proxy created!"
 }
@@ -122,19 +126,19 @@ deploy_mcp_servers() {
     echo_info "Deploying MCP servers..."
 
     # Deploy mcp-example
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-example/mcp-example-deployment.yml
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-example/mcp-example-backend.yml
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-example/mcp-example-http-route.yml
+    kubectl apply -f mcp-server/mcp-example/mcp-example-deployment.yml
+    kubectl apply -f mcp-server/mcp-example/mcp-example-backend.yml
+    kubectl apply -f mcp-server/mcp-example/mcp-example-http-route.yml
 
     # Deploy mcp-hubspot
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-hubspot/mcp-hubspot-backend.yml
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-hubspot/mcp-hubspot-http-route.yml
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-backend.yml
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-http-route.yml
 
     # Deploy mcp-mssql
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-mssql/mcp-sql-deployment.yml
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-mssql/mcp-sql-backend.yml
-    kubectl apply -f agentgateway-deployment/mcp-server/mcp-mssql/mcp-sql-http-route.yml
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-deployment.yml
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-backend.yml
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-http-route.yml
 
     echo_info "MCP servers deployed successfully!"
 }
@@ -148,33 +152,44 @@ create_azure_auth_policy() {
 
     echo_info "Creating Azure AD authentication policy..."
 
-    cat <<EOF | kubectl apply -f -
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayPolicy
-metadata:
-  name: azure-mcp-authn-policy
-spec:
-  targetRefs:
-  - name: agentgateway
-    kind: Gateway
-    group: gateway.networking.k8s.io
-  traffic:
-    jwtAuthentication:
-      mode: Strict
-      providers:
-      - issuer: https://sts.windows.net/${AZURE_TENANT_ID}/
-        jwks:
-          remote:
-            uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/keys
-            cacheDuration: 5m
-        audiences:
-      - "api://${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
-EOF
-
+#     cat <<EOF | kubectl apply -f -
+# apiVersion: agentgateway.dev/v1alpha1
+# kind: AgentgatewayPolicy
+# metadata:
+#   name: azure-mcp-authn-policy
+# spec:
+#   targetRefs:
+#   - name: agentgateway
+#     kind: Gateway
+#     group: gateway.networking.k8s.io
+#   traffic:
+#     jwtAuthentication:
+#       mode: Strict
+#       providers:
+#       - issuer: https://sts.windows.net/${AZURE_TENANT_ID}/
+#         jwks:
+#           remote:
+#             uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/keys
+#             cacheDuration: 5m
+#         audiences:
+#       - "api://${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
+# EOF
+    ## Deploy the azure auth policy
+    kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml
+    
     echo_info "Azure AD authentication policy created!"
 }
 
+deploy_mcp_agentgateway_ui() {
+    echo_info "Deploying MCP Agent Gateway UI..."
 
+    # Deploy mcp-example
+    kubectl apply -f mcp-ui/mcp-ui-deployment.yml
+    kubectl apply -f mcp-ui/mcp-ui-http-route.yml
+    
+
+    echo_info "MCP Agentgateway UI deployed successfully!"
+}
 
 verify_deployment() {
     echo_info "Verifying deployment..."
@@ -231,6 +246,7 @@ main() {
     wait_for_agentgateway
     deploy_mcp_servers
     create_azure_auth_policy
+    deploy_mcp_agentgateway_ui
     verify_deployment
     print_usage_instructions
 }
