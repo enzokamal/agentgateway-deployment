@@ -172,23 +172,23 @@ print_usage_instructions() {
     echo_info "Deployment completed successfully!"
     echo_info "=========================================="
     echo ""
-    echo_info "To port-forward the agentgateway service:"
-    echo "  kubectl port-forward svc/agentgateway 8080:8080 --address 0.0.0.0"
+    # echo_info "To port-forward the agentgateway service:"
+    # echo "  kubectl port-forward svc/agentgateway 8080:8080 --address 0.0.0.0"
     echo ""
 
-    if [[ -n "$AZURE_TENANT_ID" ]] && [[ -n "$AZURE_CLIENT_ID" ]]; then
-        echo_info "To generate an Azure AD token manually:"
-        echo "  curl -X POST https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token \\"
-        echo "    -H \"Content-Type: application/x-www-form-urlencoded\" \\"
-        echo "    -d \"client_id=${AZURE_CLIENT_ID}\" \\"
-        echo "    -d \"client_secret=<your-client-secret>\" \\"
-        echo "    -d \"scope=api://${AZURE_CLIENT_ID}/.default\" \\"
-        echo "    -d \"grant_type=client_credentials\""
-        echo ""
-    fi
+    # if [[ -n "$AZURE_TENANT_ID" ]] && [[ -n "$AZURE_CLIENT_ID" ]]; then
+    #     echo_info "To generate an Azure AD token manually:"
+    #     echo "  curl -X POST https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token \\"
+    #     echo "    -H \"Content-Type: application/x-www-form-urlencoded\" \\"
+    #     echo "    -d \"client_id=${AZURE_CLIENT_ID}\" \\"
+    #     echo "    -d \"client_secret=<your-client-secret>\" \\"
+    #     echo "    -d \"scope=api://${AZURE_CLIENT_ID}/.default\" \\"
+    #     echo "    -d \"grant_type=client_credentials\""
+    #     echo ""
+    # fi
 
-    echo_info "To access MCP servers directly through agentgateway:"
-    echo "  curl -H \"Authorization: Bearer <your-token>\" http://localhost:8080/mcp/mcp-example"
+    # echo_info "To access MCP servers directly through agentgateway:"
+    # echo "  curl -H \"Authorization: Bearer <your-token>\" http://localhost:8080/mcp/mcp-example"
     echo ""
 }
 

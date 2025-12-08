@@ -37,7 +37,7 @@ spec:
         - name: AZURE_CLIENT_SECRET
           value: ""
         - name: REDIRECT_URI
-          value: "http://172.18.0.2:30441/auth/callback"
+          value: "http://localhost:4000/auth/callback"
 ---
 apiVersion: v1
 kind: Service
