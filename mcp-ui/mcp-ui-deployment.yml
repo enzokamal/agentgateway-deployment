@@ -37,7 +37,7 @@ spec:
         - name: AZURE_CLIENT_SECRET
           value: ""
         - name: REDIRECT_URI
-          value: "http://localhost:4000/auth/callback"
+          value: "http://172.18.0.2:30441/auth/callback"
 ---
 apiVersion: v1
 kind: Service
@@ -46,9 +46,11 @@ metadata:
   labels:
     app: mcp-ui
 spec:
+  type: NodePort
   selector:
     app: mcp-ui
   ports:
-  - port: 3000
-    targetPort: 3000
-    protocol: TCP
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      nodePort: 30441
