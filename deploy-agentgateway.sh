@@ -287,26 +287,58 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
-# Check prerequisites
-check_prerequisites() {
-    echo_info "Checking prerequisites..."
+# Generic installer for binary tools
+install_binary() {
+    local name=$1
+    local url=$2
+    local binary_name=${3:-$name}
     
-    if ! command_exists kubectl; then
-        echo_error "kubectl not found. Please install kubectl first."
-        exit 1
+    echo_info "Installing $name..."
+    curl -fsSL "$url" -o "/tmp/$binary_name"
+    chmod +x "/tmp/$binary_name"
+    sudo mv "/tmp/$binary_name" "/usr/local/bin/$binary_name"
+    echo_info "$name installed successfully"
+}
+
+# Check and install kind
+ensure_kind() {
+    if command_exists kind; then
+        echo_info "kind already installed: $(kind version)"
+        return 0
     fi
     
-    if ! command_exists helm; then
-        echo_error "helm not found. Please install helm first."
-        exit 1
+    echo_info "Installing kind..."
+    local version
+    version=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest | \
+              grep -Po '"tag_name": "\K[^"]+')
+    install_binary "kind" "https://kind.sigs.k8s.io/dl/${version}/kind-linux-amd64" "kind"
+    echo_info "kind installed: $(kind version)"
+}
+
+# Check and install kubectl
+ensure_kubectl() {
+    if command_exists kubectl; then
+        echo_info "kubectl already installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
+        return 0
     fi
     
-    if ! kubectl cluster-info > /dev/null 2>&1; then
-        echo_error "Cannot connect to Kubernetes cluster. Please check your kubeconfig."
-        exit 1
+    echo_info "Installing kubectl..."
+    local version
+    version=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+    install_binary "kubectl" "https://dl.k8s.io/release/${version}/bin/linux/amd64/kubectl" "kubectl"
+    echo_info "kubectl installed: $(kubectl version --client --short 2>/dev/null)"
+}
+
+# Check and install Helm
+ensure_helm() {
+    if command_exists helm; then
+        echo_info "Helm already installed: $(helm version --short)"
+        return 0
     fi
     
-    echo_info "Prerequisites check passed!"
+    echo_info "Installing Helm..."
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    echo_info "Helm installed: $(helm version --short)"
 }
 
 # Deploy Gateway API CRDs
@@ -497,7 +529,10 @@ main() {
     echo_info "Starting agentgateway deployment..."
     echo ""
 
-    check_prerequisites
+
+    # check_prerequisites
+    ensure_kind
+    ensure_helm
     deploy_gateway_api_crds
     deploy_kgateway_crds
     deploy_kgateway_control_plane
