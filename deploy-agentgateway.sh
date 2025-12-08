@@ -11,10 +11,8 @@ NC='\033[0m' # No Color
 # Configuration variables
 AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"
 AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"
-AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET:-}"
 KGATEWAY_VERSION="${KGATEWAY_VERSION:-v2.2.0-main}"
 GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
-MCP_SERVER_IMAGE="${MCP_SERVER_IMAGE:-kamalberrybytes/mcp:1.0.0}"
 
 echo_info() {
     echo -e "${GREEN}[INFO]${NC} $1"
@@ -120,53 +118,25 @@ wait_for_agentgateway() {
     echo_info "agentgateway proxy is ready!"
 }
 
-deploy_mcp_server() {
-    echo_info "Deploying MCP example server..."
+deploy_mcp_servers() {
+    echo_info "Deploying MCP servers..."
 
-    cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-example-sa
-  namespace: default
-  annotations:
-    azure.workload.identity/client-id: "${AZURE_CLIENT_ID}"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mcp-example
-spec:
-  selector:
-    matchLabels:
-      app: mcp-example
-  template:
-    metadata:
-      labels:
-        app: mcp-example
-    spec:
-      serviceAccountName: mcp-example-sa
-      containers:
-      - name: mcp-example
-        image: ${MCP_SERVER_IMAGE}
-        imagePullPolicy: Always
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mcp-example-service
-  labels:
-    app: mcp-example
-spec:
-  selector:
-    app: mcp-example
-  ports:
-  - port: 8000
-    targetPort: 8000
-    appProtocol: kgateway.dev/mcp
-EOF
+    # Deploy mcp-example
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-example/mcp-example-deployment.yml
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-example/mcp-example-backend.yml
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-example/mcp-example-http-route.yml
 
-    echo_info "MCP server deployed successfully!"
+    # Deploy mcp-hubspot
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-hubspot/mcp-hubspot-backend.yml
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-hubspot/mcp-hubspot-http-route.yml
+
+    # Deploy mcp-mssql
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-mssql/mcp-sql-deployment.yml
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-mssql/mcp-sql-backend.yml
+    kubectl apply -f agentgateway-deployment/mcp-server/mcp-mssql/mcp-sql-http-route.yml
+
+    echo_info "MCP servers deployed successfully!"
 }
 
 create_azure_auth_policy() {
@@ -175,9 +145,9 @@ create_azure_auth_policy() {
         echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
         return
     fi
-    
+
     echo_info "Creating Azure AD authentication policy..."
-    
+
     cat <<EOF | kubectl apply -f -
 apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
@@ -200,143 +170,11 @@ spec:
         audiences:
       - "api://${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
 EOF
-    
+
     echo_info "Azure AD authentication policy created!"
 }
 
-create_mcp_backend() {
-    echo_info "Creating MCP backend..."
-    
-    cat <<EOF | kubectl apply -f -
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayBackend
-metadata:
-  name: mcp-example-backend
-spec:
-  mcp:
-    targets:
-    - name: mcp-example-target
-      static:
-        host: mcp-example-service.default.svc.cluster.local
-        port: 8000
-        protocol: StreamableHTTP
-EOF
-    
-    echo_info "MCP backend created!"
-}
 
-create_http_route() {
-    echo_info "Creating HTTP route..."
-
-    cat <<EOF | kubectl apply -f -
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: mcp-example
-spec:
-  parentRefs:
-  - name: agentgateway
-  rules:
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /mcp/mcp-example
-    backendRefs:
-    - name: mcp-example-backend
-      group: agentgateway.dev
-      kind: AgentgatewayBackend
-EOF
-
-    echo_info "HTTP route created!"
-}
-
-deploy_ui() {
-    echo_info "Deploying MCP UI application..."
-
-    cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-ui-sa
-  namespace: default
-  annotations:
-    azure.workload.identity/client-id: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mcp-ui
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mcp-ui
-  template:
-    metadata:
-      labels:
-        app: mcp-ui
-    spec:
-      serviceAccountName: mcp-ui-sa  
-      containers:
-      - name: mcp-ui
-        image: kamalberrybytes/mcp-ui-app:latest
-        imagePullPolicy: Always  
-        ports:
-        - containerPort: 3000
-        env:
-        - name: AZURE_CLIENT_ID
-          value: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
-        - name: AZURE_TENANT_ID
-          value: "${AZURE_TENANT_ID:-6ba231bb-ad9e-41b9-b23d-674c80196bbd}"
-        - name: AZURE_CLIENT_SECRET
-          value: "${AZURE_CLIENT_SECRET:-}" 
-        - name: GATEWAY_URL
-          value: "http://agentgateway.default.svc.cluster.local:8080"
-        - name: REDIRECT_URI
-          value: "http://localhost:3000/auth/callback"  
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mcp-ui-service
-  labels:
-    app: mcp-ui
-spec:
-  selector:
-    app: mcp-ui
-  ports:
-  - port: 3000
-    targetPort: 3000
-    protocol: TCP
-EOF
-
-    echo_info "MCP UI deployed successfully!"
-}
-
-create_ui_route() {
-    echo_info "Creating UI HTTP route..."
-
-    cat <<EOF | kubectl apply -f -
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: mcp-ui
-spec:
-  parentRefs:
-  - name: agentgateway
-    group: gateway.networking.k8s.io
-  rules:
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /ui
-    backendRefs:
-    - name: mcp-ui-service
-      port: 3000
-EOF
-
-    echo_info "UI HTTP route created!"
-}
 
 verify_deployment() {
     echo_info "Verifying deployment..."
@@ -347,11 +185,8 @@ verify_deployment() {
     echo_info "AgentGateway deployment status:"
     kubectl get deployment agentgateway
     echo ""
-    echo_info "MCP server status:"
-    kubectl get deployment mcp-example
-    echo ""
-    echo_info "UI application status:"
-    kubectl get deployment mcp-ui
+    echo_info "MCP servers status:"
+    kubectl get deployment mcp-example mcp-hubspot mcp-mssql
     echo ""
     echo_info "AgentGateway configuration:"
     helm get values kgateway -n kgateway-system
@@ -366,17 +201,13 @@ print_usage_instructions() {
     echo_info "To port-forward the agentgateway service:"
     echo "  kubectl port-forward svc/agentgateway 8080:8080 --address 0.0.0.0"
     echo ""
-    echo_info "UI Application:"
-    echo "  Access the UI at: http://localhost:8080/ui"
-    echo "  The UI handles automatic Entra ID authentication and provides access to MCP servers."
-    echo ""
 
-    if [[ -n "$AZURE_TENANT_ID" ]] && [[ -n "$AZURE_CLIENT_ID" ]] && [[ -n "$AZURE_CLIENT_SECRET" ]]; then
+    if [[ -n "$AZURE_TENANT_ID" ]] && [[ -n "$AZURE_CLIENT_ID" ]]; then
         echo_info "To generate an Azure AD token manually:"
         echo "  curl -X POST https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token \\"
         echo "    -H \"Content-Type: application/x-www-form-urlencoded\" \\"
         echo "    -d \"client_id=${AZURE_CLIENT_ID}\" \\"
-        echo "    -d \"client_secret=${AZURE_CLIENT_SECRET}\" \\"
+        echo "    -d \"client_secret=<your-client-secret>\" \\"
         echo "    -d \"scope=api://${AZURE_CLIENT_ID}/.default\" \\"
         echo "    -d \"grant_type=client_credentials\""
         echo ""
@@ -398,12 +229,8 @@ main() {
     wait_for_kgateway
     create_agentgateway_proxy
     wait_for_agentgateway
-    deploy_mcp_server
+    deploy_mcp_servers
     create_azure_auth_policy
-    create_mcp_backend
-    create_http_route
-    deploy_ui
-    create_ui_route
     verify_deployment
     print_usage_instructions
 }
