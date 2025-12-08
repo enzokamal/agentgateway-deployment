@@ -88,24 +88,6 @@ wait_for_kgateway() {
 create_agentgateway_proxy() {
     echo_info "Creating agentgateway proxy..."
     
-#     cat <<EOF | kubectl apply -f -
-# kind: Gateway
-# apiVersion: gateway.networking.k8s.io/v1
-# metadata:
-#   name: agentgateway
-#   labels:
-#     app: agentgateway
-# spec:
-#   gatewayClassName: agentgateway
-#   listeners:
-#   - protocol: HTTP
-#     port: 8080
-#     name: http
-#     allowedRoutes:
-#       namespaces:
-#         from: All
-# EOF
-
     ## Deploy the agentgateway proxy
     kubectl apply -f mcpagentcontrolplane/mcp-gateway-proxy.yml
 
@@ -152,29 +134,6 @@ create_azure_auth_policy() {
 
     echo_info "Creating Azure AD authentication policy..."
 
-#     cat <<EOF | kubectl apply -f -
-# apiVersion: agentgateway.dev/v1alpha1
-# kind: AgentgatewayPolicy
-# metadata:
-#   name: azure-mcp-authn-policy
-# spec:
-#   targetRefs:
-#   - name: agentgateway
-#     kind: Gateway
-#     group: gateway.networking.k8s.io
-#   traffic:
-#     jwtAuthentication:
-#       mode: Strict
-#       providers:
-#       - issuer: https://sts.windows.net/${AZURE_TENANT_ID}/
-#         jwks:
-#           remote:
-#             uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/keys
-#             cacheDuration: 5m
-#         audiences:
-#       - "api://${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
-# EOF
-    ## Deploy the azure auth policy
     kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml
     
     echo_info "Azure AD authentication policy created!"
