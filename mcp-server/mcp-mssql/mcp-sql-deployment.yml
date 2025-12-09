@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mcp-mssql-sa
-  namespace: test
+  namespace: default
   annotations:
     azure.workload.identity/client-id: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
 ---
