@@ -82,6 +82,71 @@ ensure_helm() {
     echo_info "Helm installed: $(helm version --short)"
 }
 
+# ---------------------------------------
+# 9. Install Helm chart
+# ---------------------------------------
+install_mssql_helm() {
+    RELEASE_NAME="my-mssqlserver-2022"
+    CHART="simcube/mssqlserver-2022"
+    VERSION="1.2.3"
+    NAMESPACE="test"
+
+    echo "🔹 Adding Helm repo simcube..."
+    helm repo add simcube https://simcubeltd.github.io/simcube-helm-charts/
+    helm repo update
+
+    if helm list -n $NAMESPACE | grep -qw "$RELEASE_NAME"; then
+        echo "✔ Helm release $RELEASE_NAME already installed."
+    else
+        echo "🚀 Installing Helm chart $CHART..."
+        helm install $RELEASE_NAME $CHART --version $VERSION -n $NAMESPACE --create-namespace
+    fi
+
+    echo "⏳ Waiting for pods from Helm release $RELEASE_NAME..."
+    while true; do
+        NOT_READY=$(kubectl get pods -n $NAMESPACE -l "app.kubernetes.io/instance=$RELEASE_NAME" --no-headers 2>/dev/null \
+            | awk '{split($2,a,"/"); if(a[1]!=a[2]) print $1, $2, $3}')
+        if [[ -z "$NOT_READY" ]]; then
+            echo "✔ All pods for Helm release $RELEASE_NAME are ready."
+            break
+        else
+            echo "⌛ Pods not ready yet:"
+            echo "$NOT_READY"
+            sleep 5
+        fi
+    done
+
+    # Fetch the auto-generated MSSQL password from the Helm secret
+    PASSWORD=$(kubectl get secret -n $NAMESPACE ${RELEASE_NAME}-secret -o jsonpath="{.data.sapassword}" | base64 --decode)
+    echo "🔑 Fetched MSSQL password from Helm chart: $PASSWORD"
+
+    # Export for later use in POST request
+    export MSSQL_PASSWORD="$PASSWORD"
+}
+
+# ---------------------------------------
+# 5. Wait for pods in namespace
+# ---------------------------------------
+NAMESPACE="test"
+wait_for_pods() {
+    echo "⏳ Waiting for pods in namespace $NAMESPACE..."
+    kubectl get ns "$NAMESPACE" >/dev/null 2>&1 || kubectl create ns "$NAMESPACE"
+
+    while true; do
+        NOT_READY=$(kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null \
+            | awk '{split($2,a,"/"); if(a[1]!=a[2]) print $1, $2, $3}')
+        
+        if [[ -z "$NOT_READY" ]]; then
+            echo "✔ All pods in $NAMESPACE are ready."
+            break
+        else
+            echo "⌛ Pods not ready yet:"
+            echo "$NOT_READY"
+            sleep 10
+        fi
+    done
+}
+
 # Deploy Gateway API CRDs
 deploy_gateway_api_crds() {
     echo_info "Deploying Kubernetes Gateway API CRDs (${GATEWAY_API_VERSION})..."
@@ -274,6 +339,8 @@ main() {
     # check_prerequisites
     # ensure_kind
     ensure_helm
+    install_mssql_helm
+    wait_for_pods
     deploy_gateway_api_crds
     deploy_kgateway_crds
     deploy_kgateway_control_plane
@@ -290,3 +357,58 @@ main() {
 }
 
 main "$@"
+
+
+# -------------------------
+# Refresh HubSpot token and update K8s secret
+# -------------------------
+echo "🔄 Refreshing HubSpot access token..."
+
+# Load credentials
+source "$HOME/Desktop/agentgatewayv1/credentials.txt"
+
+# Define namespace and secret name
+NAMESPACE=test
+SECRET_NAME=hubspot-access-token
+STATEFULSET_NAME=mcp-hubspot # Optional
+
+# STEP 1: Refresh token
+response=$(curl -s --request POST \
+  --url https://api.hubapi.com/oauth/v1/token \
+  --header "Content-Type: application/x-www-form-urlencoded" \
+  --data "grant_type=refresh_token" \
+  --data "client_id=$CLIENT_ID" \
+  --data "client_secret=$CLIENT_SECRET" \
+  --data "refresh_token=$REFRESH_TOKEN")
+
+ACCESS_TOKEN=$(echo "$response" | jq -r '.access_token')
+echo "ACCESS_TOKEN: $ACCESS_TOKEN"
+
+if [ -z "$ACCESS_TOKEN" ] || [ "$ACCESS_TOKEN" == "null" ]; then
+    echo "❌ Failed to get access token"
+    echo "Response: $response"
+    exit 1
+fi
+
+echo "✔ New access token retrieved successfully"
+
+# STEP 2: Store token in K8s secret
+if kubectl get secret "$SECRET_NAME" -n "$NAMESPACE" >/dev/null 2>&1; then
+    kubectl create secret generic "$SECRET_NAME" \
+      --from-literal=HUBSPOT_ACCESS_TOKEN="$ACCESS_TOKEN" \
+      -n "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+    echo "✔ Secret updated successfully"
+else
+    kubectl create secret generic "$SECRET_NAME" \
+      --from-literal=HUBSPOT_ACCESS_TOKEN="$ACCESS_TOKEN" \
+      -n "$NAMESPACE"
+    echo "✔ Secret created successfully"
+fi
+
+# STEP 3: Restart StatefulSet / Deployment to pick up new secret
+if [ -n "$STATEFULSET_NAME" ]; then
+    echo "🔄 Restarting StatefulSet $STATEFULSET_NAME..."
+    kubectl rollout restart deployment/"$STATEFULSET_NAME" -n "$NAMESPACE"
+fi
+
+echo "🎉 HubSpot token refresh complete!"

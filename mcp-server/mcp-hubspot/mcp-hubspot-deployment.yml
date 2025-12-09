@@ -25,6 +25,12 @@ spec:
       - name: mcp-hubspot
         image: kamalberrybytes/mcp-hubspot:latest
         imagePullPolicy: Always
+        env:
+         - name: HUBSPOT_ACCESS_TOKEN
+           valueFrom:
+            secretKeyRef:
+              name: hubspot-access-token
+              key: HUBSPOT_ACCESS_TOKEN
 ---
 apiVersion: v1
 kind: Service
@@ -40,4 +46,15 @@ spec:
   - port: 8000
     targetPort: 8000
     appProtocol: kgateway.dev/mcp
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: hubspot-access-token
+  namespace: test
+type: Opaque
+stringData:
+  HUBSPOT_ACCESS_TOKEN: "FASKFNKSANFKAMMDF"
+
 

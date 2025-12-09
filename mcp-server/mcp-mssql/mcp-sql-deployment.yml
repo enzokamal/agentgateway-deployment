@@ -25,6 +25,20 @@ spec:
       - name: mcp-mssql
         image: kamalberrybytes/mssql-mcp:v1
         imagePullPolicy: Always
+        env:
+        - name: MSSQL_SERVER
+          value: "my-mssqlserver-2022"
+        - name: MSSQL_DATABASE
+          value: "msdb"
+        - name: MSSQL_PORT
+          value: "1433"
+        - name: MSSQL_USER
+          value: "sa"
+        - name: MSSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mcp-mssql-secret
+              key: MSSQL_PASSWORD
 ---
 apiVersion: v1   
 kind: Service
@@ -40,3 +54,14 @@ spec:
   - port: 8000
     targetPort: 8000
     appProtocol: kgateway.dev/mcp
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: mcp-mssql-secret
+  namespace: test
+type: Opaque
+stringData:
+  MSSQL_PASSWORD: "bmgmssqlserver"
+
