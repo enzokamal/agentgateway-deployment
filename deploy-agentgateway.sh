@@ -3,74 +3,110 @@
 set -e
 
 # Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly NC='\033[0m'
 
 # Configuration variables
-AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"
-AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"
-AZURE_CLIENT_SECRET="${AZURE_CLIENT_SECRET:-}"
-KGATEWAY_VERSION="${KGATEWAY_VERSION:-v2.2.0-main}"
-GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
-MCP_SERVER_IMAGE="${MCP_SERVER_IMAGE:-kamalberrybytes/mcp:1.0.0}"
+readonly AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"
+readonly AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"
+readonly KGATEWAY_VERSION="${KGATEWAY_VERSION:-v2.2.0-main}"
+readonly GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
+readonly SERVICE_NAME="mcp-ui-service"
+readonly SCREEN_SESSION="mcp-ui-forward"
+readonly KGATEWAY_NAMESPACE="kgateway-system"
+readonly DEFAULT_TIMEOUT="300s"
 
-echo_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+# Logging functions
+echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+echo_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+echo_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+
+# Check if command exists
+command_exists() {
+    command -v "$1" &> /dev/null
 }
 
-echo_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-echo_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-check_prerequisites() {
-    echo_info "Checking prerequisites..."
+# Generic installer for binary tools
+install_binary() {
+    local name=$1
+    local url=$2
+    local binary_name=${3:-$name}
     
-    if ! command -v kubectl &> /dev/null; then
-        echo_error "kubectl not found. Please install kubectl first."
-        exit 1
+    echo_info "Installing $name..."
+    curl -fsSL "$url" -o "/tmp/$binary_name"
+    chmod +x "/tmp/$binary_name"
+    sudo mv "/tmp/$binary_name" "/usr/local/bin/$binary_name"
+    echo_info "$name installed successfully"
+}
+
+# # Check and install kind
+# ensure_kind() {
+#     if command_exists kind; then
+#         echo_info "kind already installed: $(kind version)"
+#         return 0
+#     fi
+    
+#     echo_info "Installing kind..."
+#     local version
+#     version=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest | \
+#               grep -Po '"tag_name": "\K[^"]+')
+#     install_binary "kind" "https://kind.sigs.k8s.io/dl/${version}/kind-linux-amd64" "kind"
+#     echo_info "kind installed: $(kind version)"
+# }
+
+# Check and install kubectl
+ensure_kubectl() {
+    if command_exists kubectl; then
+        echo_info "kubectl already installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
+        return 0
     fi
     
-    if ! command -v helm &> /dev/null; then
-        echo_error "helm not found. Please install helm first."
-        exit 1
-    fi
-    
-    if ! kubectl cluster-info &> /dev/null; then
-        echo_error "Cannot connect to Kubernetes cluster. Please check your kubeconfig."
-        exit 1
-    fi
-    
-    echo_info "Prerequisites check passed!"
+    echo_info "Installing kubectl..."
+    local version
+    version=$(curl -fsSL https://dl.k8s.io/release/stable.txt)
+    install_binary "kubectl" "https://dl.k8s.io/release/${version}/bin/linux/amd64/kubectl" "kubectl"
+    echo_info "kubectl installed: $(kubectl version --client --short 2>/dev/null)"
 }
 
+# Check and install Helm
+ensure_helm() {
+    if command_exists helm; then
+        echo_info "Helm already installed: $(helm version --short)"
+        return 0
+    fi
+    
+    echo_info "Installing Helm..."
+    curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+    echo_info "Helm installed: $(helm version --short)"
+}
+
+# Deploy Gateway API CRDs
 deploy_gateway_api_crds() {
-    echo_info "Deploying Kubernetes Gateway API CRDs..."
-    kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml
+    echo_info "Deploying Kubernetes Gateway API CRDs (${GATEWAY_API_VERSION})..."
+    kubectl apply -f "https://github.com/kubernetes-sigs/gateway-api/releases/download/${GATEWAY_API_VERSION}/standard-install.yaml"
     echo_info "Gateway API CRDs deployed successfully!"
 }
 
+# Deploy kgateway CRDs
 deploy_kgateway_crds() {
-    echo_info "Deploying kgateway and agentgateway CRDs..."
+    echo_info "Deploying kgateway and agentgateway CRDs (${KGATEWAY_VERSION})..."
     helm upgrade -i \
         --create-namespace \
-        --namespace kgateway-system \
-        --version ${KGATEWAY_VERSION} \
+        --namespace "${KGATEWAY_NAMESPACE}" \
+        --version "${KGATEWAY_VERSION}" \
         kgateway-crds \
         oci://cr.kgateway.dev/kgateway-dev/charts/kgateway-crds
     echo_info "kgateway CRDs deployed successfully!"
 }
 
+# Deploy kgateway control plane
 deploy_kgateway_control_plane() {
     echo_info "Installing kgateway control plane with agentgateway enabled..."
     helm upgrade -i \
-        --namespace kgateway-system \
-        --version ${KGATEWAY_VERSION} \
+        --namespace "${KGATEWAY_NAMESPACE}" \
+        --version "${KGATEWAY_VERSION}" \
         kgateway \
         oci://cr.kgateway.dev/kgateway-dev/charts/kgateway \
         --set agentgateway.enabled=true \
@@ -78,332 +114,177 @@ deploy_kgateway_control_plane() {
     echo_info "kgateway control plane deployed successfully!"
 }
 
+# Wait for kgateway
 wait_for_kgateway() {
     echo_info "Waiting for kgateway control plane to be ready..."
-    kubectl wait --for=condition=ready pod \
+    if kubectl wait --for=condition=ready pod \
         -l app.kubernetes.io/name=kgateway \
-        -n kgateway-system \
-        --timeout=300s
-    echo_info "kgateway control plane is ready!"
+        -n "${KGATEWAY_NAMESPACE}" \
+        --timeout="${DEFAULT_TIMEOUT}"; then
+        echo_info "kgateway control plane is ready!"
+    else
+        echo_error "Timeout waiting for kgateway control plane"
+        exit 1
+    fi
 }
 
+# Create agentgateway proxy
 create_agentgateway_proxy() {
     echo_info "Creating agentgateway proxy..."
-    
-    cat <<EOF | kubectl apply -f -
-kind: Gateway
-apiVersion: gateway.networking.k8s.io/v1
-metadata:
-  name: agentgateway
-  labels:
-    app: agentgateway
-spec:
-  gatewayClassName: agentgateway
-  listeners:
-  - protocol: HTTP
-    port: 8080
-    name: http
-    allowedRoutes:
-      namespaces:
-        from: All
-EOF
-    
+    kubectl apply -f mcpagentcontrolplane/mcp-gateway-proxy.yml
     echo_info "agentgateway proxy created!"
 }
 
+# Wait for agentgateway
 wait_for_agentgateway() {
     echo_info "Waiting for agentgateway proxy to be ready..."
     sleep 10
     kubectl wait --for=condition=ready pod \
         -l app=agentgateway \
-        --timeout=300s 2>/dev/null || echo_warn "Gateway pod may still be initializing..."
+        --timeout="${DEFAULT_TIMEOUT}" 2>/dev/null || \
+        echo_warn "Gateway pod may still be initializing..."
     echo_info "agentgateway proxy is ready!"
 }
 
-deploy_mcp_server() {
-    echo_info "Deploying MCP example server..."
+# Deploy MCP servers
+deploy_mcp_servers() {
+    echo_info "Deploying MCP servers..."
+    
+    # Deploy mcp-example
+    kubectl apply -f mcp-server/mcp-example/mcp-example-deployment.yml
+    kubectl apply -f mcp-server/mcp-example/mcp-example-backend.yml
+    kubectl apply -f mcp-server/mcp-example/mcp-example-http-route.yml
 
-    cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-example-sa
-  namespace: default
-  annotations:
-    azure.workload.identity/client-id: "${AZURE_CLIENT_ID}"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mcp-example
-spec:
-  selector:
-    matchLabels:
-      app: mcp-example
-  template:
-    metadata:
-      labels:
-        app: mcp-example
-    spec:
-      serviceAccountName: mcp-example-sa
-      containers:
-      - name: mcp-example
-        image: ${MCP_SERVER_IMAGE}
-        imagePullPolicy: Always
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mcp-example-service
-  labels:
-    app: mcp-example
-spec:
-  selector:
-    app: mcp-example
-  ports:
-  - port: 8000
-    targetPort: 8000
-    appProtocol: kgateway.dev/mcp
-EOF
+    # Deploy mcp-hubspot
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-backend.yml
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-http-route.yml
 
-    echo_info "MCP server deployed successfully!"
+    # Deploy mcp-mssql
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-deployment.yml
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-backend.yml
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-http-route.yml
+    
+    echo_info "MCP servers deployed successfully!"
 }
 
+# Create Azure AD authentication policy
 create_azure_auth_policy() {
     if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
         echo_warn "Azure credentials not provided. Skipping Azure AD authentication policy."
         echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
-        return
+        return 0
     fi
-    
+
     echo_info "Creating Azure AD authentication policy..."
-    
-    cat <<EOF | kubectl apply -f -
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayPolicy
-metadata:
-  name: azure-mcp-authn-policy
-spec:
-  targetRefs:
-  - name: agentgateway
-    kind: Gateway
-    group: gateway.networking.k8s.io
-  traffic:
-    jwtAuthentication:
-      mode: Strict
-      providers:
-      - issuer: https://sts.windows.net/${AZURE_TENANT_ID}/
-        jwks:
-          remote:
-            uri: https://login.microsoftonline.com/${AZURE_TENANT_ID}/discovery/keys
-            cacheDuration: 5m
-        audiences:
-      - "api://${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
-EOF
-    
+    kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml
     echo_info "Azure AD authentication policy created!"
 }
 
-create_mcp_backend() {
-    echo_info "Creating MCP backend..."
-    
-    cat <<EOF | kubectl apply -f -
-apiVersion: agentgateway.dev/v1alpha1
-kind: AgentgatewayBackend
-metadata:
-  name: mcp-example-backend
-spec:
-  mcp:
-    targets:
-    - name: mcp-example-target
-      static:
-        host: mcp-example-service.default.svc.cluster.local
-        port: 8000
-        protocol: StreamableHTTP
-EOF
-    
-    echo_info "MCP backend created!"
+# Deploy MCP Agent Gateway UI
+deploy_mcp_agentgateway_ui() {
+    echo_info "Deploying MCP Agent Gateway UI..."
+    kubectl apply -f mcp-ui/mcp-ui-deployment.yml
+    kubectl apply -f mcp-ui/mcp-ui-http-route.yml
+    echo_info "MCP Agentgateway UI deployed successfully!"
 }
 
-create_http_route() {
-    echo_info "Creating HTTP route..."
-
-    cat <<EOF | kubectl apply -f -
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: mcp-example
-spec:
-  parentRefs:
-  - name: agentgateway
-  rules:
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /mcp/mcp-example
-    backendRefs:
-    - name: mcp-example-backend
-      group: agentgateway.dev
-      kind: AgentgatewayBackend
-EOF
-
-    echo_info "HTTP route created!"
+# ---------------------------------------
+# 6. Check/install screen
+# ---------------------------------------
+check_screen() {
+    if ! command -v screen >/dev/null 2>&1; then
+        echo "📥 Installing screen..."
+        sudo apt-get update && sudo apt-get install -y screen
+    fi
 }
 
-deploy_ui() {
-    echo_info "Deploying MCP UI application..."
+# Start port-forward in detached screen
+port_forward_service() {
+    echo_info "Ensuring port-forward for ${SERVICE_NAME}..."
 
-    cat <<EOF | kubectl apply -f -
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-ui-sa
-  namespace: default
-  annotations:
-    azure.workload.identity/client-id: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mcp-ui
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mcp-ui
-  template:
-    metadata:
-      labels:
-        app: mcp-ui
-    spec:
-      serviceAccountName: mcp-ui-sa  
-      containers:
-      - name: mcp-ui
-        image: kamalberrybytes/mcp-ui-app:latest
-        imagePullPolicy: Always  
-        ports:
-        - containerPort: 3000
-        env:
-        - name: AZURE_CLIENT_ID
-          value: "${AZURE_CLIENT_ID:-11ddc0cd-e6fc-48b6-8832-de61800fb41e}"
-        - name: AZURE_TENANT_ID
-          value: "${AZURE_TENANT_ID:-6ba231bb-ad9e-41b9-b23d-674c80196bbd}"
-        - name: AZURE_CLIENT_SECRET
-          value: "${AZURE_CLIENT_SECRET:-}" 
-        - name: GATEWAY_URL
-          value: "http://agentgateway.default.svc.cluster.local:8080"
-        - name: REDIRECT_URI
-          value: "http://localhost:3000/auth/callback"  
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mcp-ui-service
-  labels:
-    app: mcp-ui
-spec:
-  selector:
-    app: mcp-ui
-  ports:
-  - port: 3000
-    targetPort: 3000
-    protocol: TCP
-EOF
+    # Check if session exists and port-forward is running
+    if screen -list | grep -qw "$SCREEN_SESSION"; then
+        if pgrep -f "kubectl port-forward.*${SERVICE_NAME}" >/dev/null; then
+            echo_info "Port-forward already running."
+            return 0
+        else
+            screen -S "$SCREEN_SESSION" -X quit 2>/dev/null || true
+        fi
+    fi
 
-    echo_info "MCP UI deployed successfully!"
+    # Start detached screen with auto-restart loop
+    screen -dmS "$SCREEN_SESSION" bash -c \
+        "while true; do kubectl port-forward svc/${SERVICE_NAME} 4000:3000; sleep 5; done"
+
+    echo_info "Port-forward started in detached screen: ${SCREEN_SESSION}"
+    echo_info "Access UI at: http://localhost:4000"
+    echo_info "To attach: screen -r ${SCREEN_SESSION}"
 }
 
-create_ui_route() {
-    echo_info "Creating UI HTTP route..."
-
-    cat <<EOF | kubectl apply -f -
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: mcp-ui
-spec:
-  parentRefs:
-  - name: agentgateway
-    group: gateway.networking.k8s.io
-  rules:
-  - matches:
-    - path:
-        type: PathPrefix
-        value: /ui
-    backendRefs:
-    - name: mcp-ui-service
-      port: 3000
-EOF
-
-    echo_info "UI HTTP route created!"
-}
-
+# Verify deployment
 verify_deployment() {
     echo_info "Verifying deployment..."
     echo ""
+    
     echo_info "Gateway status:"
-    kubectl get gateway agentgateway
+    kubectl get gateway agentgateway || echo_warn "Gateway not found"
     echo ""
+    
     echo_info "AgentGateway deployment status:"
-    kubectl get deployment agentgateway
+    kubectl get deployment agentgateway || echo_warn "Deployment not found"
     echo ""
-    echo_info "MCP server status:"
-    kubectl get deployment mcp-example
+    
+    echo_info "MCP servers status:"
+    kubectl get deployment mcp-example mcp-hubspot mcp-mssql || echo_warn "Some deployments not found"
     echo ""
-    echo_info "UI application status:"
-    kubectl get deployment mcp-ui
-    echo ""
+    
     echo_info "AgentGateway configuration:"
-    helm get values kgateway -n kgateway-system
+    helm get values kgateway -n "${KGATEWAY_NAMESPACE}"
 }
 
+# Print usage instructions
 print_usage_instructions() {
-    echo ""
-    echo_info "=========================================="
-    echo_info "Deployment completed successfully!"
-    echo_info "=========================================="
-    echo ""
-    echo_info "To port-forward the agentgateway service:"
-    echo "  kubectl port-forward svc/agentgateway 8080:8080 --address 0.0.0.0"
-    echo ""
-    echo_info "UI Application:"
-    echo "  Access the UI at: http://localhost:8080/ui"
-    echo "  The UI handles automatic Entra ID authentication and provides access to MCP servers."
-    echo ""
+    cat << EOF
 
-    if [[ -n "$AZURE_TENANT_ID" ]] && [[ -n "$AZURE_CLIENT_ID" ]] && [[ -n "$AZURE_CLIENT_SECRET" ]]; then
-        echo_info "To generate an Azure AD token manually:"
-        echo "  curl -X POST https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/v2.0/token \\"
-        echo "    -H \"Content-Type: application/x-www-form-urlencoded\" \\"
-        echo "    -d \"client_id=${AZURE_CLIENT_ID}\" \\"
-        echo "    -d \"client_secret=${AZURE_CLIENT_SECRET}\" \\"
-        echo "    -d \"scope=api://${AZURE_CLIENT_ID}/.default\" \\"
-        echo "    -d \"grant_type=client_credentials\""
-        echo ""
-    fi
+$(echo_info "==========================================")
+$(echo_info "Deployment completed successfully!")
+$(echo_info "==========================================")
 
-    echo_info "To access MCP servers directly through agentgateway:"
-    echo "  curl -H \"Authorization: Bearer <your-token>\" http://localhost:8080/mcp/mcp-example"
-    echo ""
+Access the UI at: http://localhost:4000
+
+To view port-forward logs:
+  screen -r ${SCREEN_SESSION}
+
+To detach from screen:
+  Press Ctrl+A, then D
+
+To stop port-forward:
+  screen -S ${SCREEN_SESSION} -X quit
+
+EOF
 }
 
+# Main execution
 main() {
     echo_info "Starting agentgateway deployment..."
     echo ""
 
-    check_prerequisites
+
+    # check_prerequisites
+    # ensure_kind
+    ensure_helm
     deploy_gateway_api_crds
     deploy_kgateway_crds
     deploy_kgateway_control_plane
     wait_for_kgateway
     create_agentgateway_proxy
     wait_for_agentgateway
-    deploy_mcp_server
+    deploy_mcp_servers
     create_azure_auth_policy
-    create_mcp_backend
-    create_http_route
-    deploy_ui
-    create_ui_route
+    deploy_mcp_agentgateway_ui
+    check_screen
+    port_forward_service
     verify_deployment
     print_usage_instructions
 }
