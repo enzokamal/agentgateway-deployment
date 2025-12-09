@@ -2,6 +2,7 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
   name: azure-mcp-authn-policy
+  namespace: test
 spec:
   targetRefs:
     - name: agentgateway
