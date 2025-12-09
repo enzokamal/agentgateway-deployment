@@ -278,9 +278,9 @@ readonly KGATEWAY_NAMESPACE="kgateway-system"
 readonly DEFAULT_TIMEOUT="300s"
 
 # Logging functions
-echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
-echo_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-echo_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
+echo_info() { echo  "${GREEN}[INFO]${NC} $1"; }
+echo_warn() { echo  "${YELLOW}[WARN]${NC} $1"; }
+echo_error() { echo  "${RED}[ERROR]${NC} $1" >&2; }
 
 # Check if command exists
 command_exists() {
