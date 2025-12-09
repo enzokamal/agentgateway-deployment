@@ -2,6 +2,7 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
   name: mcp-example-backend
+  namespace: test
 spec:
   mcp:
     targets:
