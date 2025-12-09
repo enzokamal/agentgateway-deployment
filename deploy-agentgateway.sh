@@ -228,15 +228,15 @@ verify_deployment() {
     echo ""
     
     echo_info "Gateway status:"
-    kubectl get gateway agentgateway || echo_warn "Gateway not found"
+    kubectl get gateway agentgateway -n test || echo_warn "Gateway not found"
     echo ""
     
     echo_info "AgentGateway deployment status:"
-    kubectl get deployment agentgateway || echo_warn "Deployment not found"
+    kubectl get deployment agentgateway -n test || echo_warn "Deployment not found"
     echo ""
     
     echo_info "MCP servers status:"
-    kubectl get deployment mcp-example mcp-hubspot mcp-mssql || echo_warn "Some deployments not found"
+    kubectl get deployment mcp-example mcp-hubspot mcp-mssql -n test || echo_warn "Some deployments not found"
     echo ""
     
     echo_info "AgentGateway configuration:"
