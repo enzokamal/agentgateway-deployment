@@ -2,6 +2,7 @@ kind: Gateway
 apiVersion: gateway.networking.k8s.io/v1
 metadata:
   name: agentgateway
+  namespace: test
   labels:
     app: agentgateway
 spec:
