@@ -41,20 +41,20 @@ install_binary() {
     echo_info "$name installed successfully"
 }
 
-# Check and install kind
-ensure_kind() {
-    if command_exists kind; then
-        echo_info "kind already installed: $(kind version)"
-        return 0
-    fi
+# # Check and install kind
+# ensure_kind() {
+#     if command_exists kind; then
+#         echo_info "kind already installed: $(kind version)"
+#         return 0
+#     fi
     
-    echo_info "Installing kind..."
-    local version
-    version=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest | \
-              grep -Po '"tag_name": "\K[^"]+')
-    install_binary "kind" "https://kind.sigs.k8s.io/dl/${version}/kind-linux-amd64" "kind"
-    echo_info "kind installed: $(kind version)"
-}
+#     echo_info "Installing kind..."
+#     local version
+#     version=$(curl -fsSL https://api.github.com/repos/kubernetes-sigs/kind/releases/latest | \
+#               grep -Po '"tag_name": "\K[^"]+')
+#     install_binary "kind" "https://kind.sigs.k8s.io/dl/${version}/kind-linux-amd64" "kind"
+#     echo_info "kind installed: $(kind version)"
+# }
 
 # Check and install kubectl
 ensure_kubectl() {
@@ -272,7 +272,7 @@ main() {
 
 
     # check_prerequisites
-    ensure_kind
+    # ensure_kind
     ensure_helm
     deploy_gateway_api_crds
     deploy_kgateway_crds
