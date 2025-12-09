@@ -19,9 +19,9 @@ readonly KGATEWAY_NAMESPACE="kgateway-system"
 readonly DEFAULT_TIMEOUT="300s"
 
 # Logging functions
-echo_info() { echo  "${GREEN}[INFO]${NC} $1"; }
-echo_warn() { echo  "${YELLOW}[WARN]${NC} $1"; }
-echo_error() { echo  "${RED}[ERROR]${NC} $1" >&2; }
+echo_info() { echo -e "${GREEN}[INFO]${NC} $1"; }
+echo_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
+echo_error() { echo -e "${RED}[ERROR]${NC} $1" >&2; }
 
 # Check if command exists
 command_exists() {
@@ -168,18 +168,18 @@ deploy_mcp_servers() {
     echo_info "MCP servers deployed successfully!"
 }
 
-# # Create Azure AD authentication policy
-# create_azure_auth_policy() {
-#     if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
-#         echo_warn "Azure credentials not provided. Skipping Azure AD authentication policy."
-#         echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
-#         return 0
-#     fi
+# Create Azure AD authentication policy
+create_azure_auth_policy() {
+    if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
+        echo_warn "Azure credentials not provided. Skipping Azure AD authentication policy."
+        echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
+        return 0
+    fi
 
-#     echo_info "Creating Azure AD authentication policy..."
-#     kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml
-#     echo_info "Azure AD authentication policy created!"
-# }
+    echo_info "Creating Azure AD authentication policy..."
+    kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml
+    echo_info "Azure AD authentication policy created!"
+}
 
 # Deploy MCP Agent Gateway UI
 deploy_mcp_agentgateway_ui() {
@@ -281,7 +281,7 @@ main() {
     create_agentgateway_proxy
     wait_for_agentgateway
     deploy_mcp_servers
-    # create_azure_auth_policy
+    create_azure_auth_policy
     deploy_mcp_agentgateway_ui
     check_screen
     port_forward_service
