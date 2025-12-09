@@ -8,6 +8,6 @@ spec:
     targets:
     - name: mcp-mssql-target
       static:
-        host: mcp-mssql-service.default.svc.cluster.local
+        host: mcp-mssql-service.test.svc.cluster.local
         port: 8000
         protocol: StreamableHTTP

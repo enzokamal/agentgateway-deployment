@@ -28,17 +28,17 @@ spec:
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
-        env:
-        - name: AZURE_CLIENT_ID
-          value: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
-        - name: AZURE_TENANT_ID
-          value: "6ba231bb-ad9e-41b9-b23d-674c80196bbd"
-        - name: GATEWAY_URL
-          value: "http://agentgateway.default.svc.cluster.local:8080"
-        - name: AZURE_CLIENT_SECRET
-          value: ""
-        - name: REDIRECT_URI
-          value: "http://localhost:4000/auth/callback"
+        # env:
+        # - name: AZURE_CLIENT_ID
+        #   value: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
+        # - name: AZURE_TENANT_ID
+        #   value: "6ba231bb-ad9e-41b9-b23d-674c80196bbd"
+        # - name: GATEWAY_URL
+        #   value: "http://agentgateway.default.svc.cluster.local:8080"
+        # - name: AZURE_CLIENT_SECRET
+        #   value: ""
+        # - name: REDIRECT_URI
+        #   value: "http://localhost:4000/auth/callback"
 ---
 apiVersion: v1
 kind: Service

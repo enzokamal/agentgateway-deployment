@@ -8,6 +8,6 @@ spec:
     targets:
     - name: mcp-hubspot-target
       static:
-        host: mcp-hubspot-service.default.svc.cluster.local
+        host: mcp-hubspot-service.test.svc.cluster.local
         port: 8000
         protocol: StreamableHTTP

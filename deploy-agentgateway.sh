@@ -215,11 +215,12 @@ port_forward_service() {
 
     # Start detached screen with auto-restart loop
     screen -dmS "$SCREEN_SESSION" bash -c \
-        "while true; do kubectl port-forward svc/${SERVICE_NAME} 4000:3000; sleep 5; done"
+    "while true; do kubectl port-forward svc/${SERVICE_NAME} 3000:3000 -n test && kubectl port-forward svc/agentgateway 8080:8080 -n test & wait; sleep 5; done"
 
     echo_info "Port-forward started in detached screen: ${SCREEN_SESSION}"
-    echo_info "Access UI at: http://localhost:4000"
+    echo_info "Access UI at: http://localhost:3000"
     echo_info "To attach: screen -r ${SCREEN_SESSION}"
+    
 }
 
 # Verify deployment
@@ -251,7 +252,7 @@ $(echo_info "==========================================")
 $(echo_info "Deployment completed successfully!")
 $(echo_info "==========================================")
 
-Access the UI at: http://localhost:4000
+Access the UI at: http://localhost:3000
 
 To view port-forward logs:
   screen -r ${SCREEN_SESSION}
