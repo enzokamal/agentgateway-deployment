@@ -2,12 +2,11 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
   name: mcp-mssql-backend
-  namespace: test
 spec:
   mcp:
     targets:
     - name: mcp-mssql-target
       static:
-        host: mcp-mssql-service.test.svc.cluster.local
+        host: mcp-mssql-service.default.svc.cluster.local
         port: 8000
         protocol: StreamableHTTP

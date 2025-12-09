@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mcp-mssql-sa
-  namespace: test
+  namespace: default
   annotations:
     azure.workload.identity/client-id: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
 ---
@@ -10,7 +10,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mcp-mssql
-  namespace: test
 spec:
   selector:
     matchLabels:
@@ -30,7 +29,6 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mcp-mssql-service
-  namespace: test
   labels:
     app: mcp-mssql
 spec:
