@@ -233,6 +233,13 @@ deploy_mcp_servers() {
     echo_info "MCP servers deployed successfully!"
 }
 
+# Deploy cronjob
+deploy_cronjob() {
+    echo_info "Deploying cronjob..."
+    kubectl apply -f cronjob/cronjob-deployment.yml
+    echo_info "Cronjob deployed successfully!"
+}
+
 # Create Azure AD authentication policy
 create_azure_auth_policy() {
     if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
@@ -348,6 +355,7 @@ main() {
     create_agentgateway_proxy
     wait_for_agentgateway
     deploy_mcp_servers
+    deploy_cronjob
     create_azure_auth_policy
     deploy_mcp_agentgateway_ui
     check_screen
