@@ -6,7 +6,7 @@ metadata:
   labels:
     app: agentgateway
 spec:
-  gatewayClassName: agentgateway
+  gatewayClassName: agentgateway-proxy
   listeners:
   - protocol: HTTP
     port: 8080
