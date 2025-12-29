@@ -69,47 +69,47 @@ ensure_helm() {
     echo_info "Helm installed: $(helm version --short)"
 }
 
-# # ---------------------------------------
-# # 1. Install Helm chart
-# # ---------------------------------------
-# install_mssql_helm() {
-#     RELEASE_NAME="my-mssqlserver-2022"
-#     CHART="simcube/mssqlserver-2022"
-#     VERSION="1.2.3"
-#     NAMESPACE="agentgateway-system"
+# ---------------------------------------
+# 1. Install Helm chart
+# ---------------------------------------
+install_mssql_helm() {
+    RELEASE_NAME="my-mssqlserver-2022"
+    CHART="simcube/mssqlserver-2022"
+    VERSION="1.2.3"
+    NAMESPACE="agentgateway-system"
 
-#     echo "🔹 Adding Helm repo simcube..."
-#     helm repo add simcube https://simcubeltd.github.io/simcube-helm-charts/
-#     helm repo update
+    echo "🔹 Adding Helm repo simcube..."
+    helm repo add simcube https://simcubeltd.github.io/simcube-helm-charts/
+    helm repo update
 
-#     if helm list -n $NAMESPACE | grep -qw "$RELEASE_NAME"; then
-#         echo "✔ Helm release $RELEASE_NAME already installed."
-#     else
-#         echo "🚀 Installing Helm chart $CHART..."
-#         helm install $RELEASE_NAME $CHART --version $VERSION -n $NAMESPACE --create-namespace
-#     fi
+    if helm list -n $NAMESPACE | grep -qw "$RELEASE_NAME"; then
+        echo "✔ Helm release $RELEASE_NAME already installed."
+    else
+        echo "🚀 Installing Helm chart $CHART..."
+        helm install $RELEASE_NAME $CHART --version $VERSION -n $NAMESPACE --create-namespace
+    fi
 
-#     echo "⏳ Waiting for pods from Helm release $RELEASE_NAME..."
-#     while true; do
-#         NOT_READY=$(kubectl get pods -n $NAMESPACE -l "app.kubernetes.io/instance=$RELEASE_NAME" --no-headers 2>/dev/null \
-#             | awk '{split($2,a,"/"); if(a[1]!=a[2]) print $1, $2, $3}')
-#         if [[ -z "$NOT_READY" ]]; then
-#             echo "✔ All pods for Helm release $RELEASE_NAME are ready."
-#             break
-#         else
-#             echo "⌛ Pods not ready yet:"
-#             echo "$NOT_READY"
-#             sleep 5
-#         fi
-#     done
+    echo "⏳ Waiting for pods from Helm release $RELEASE_NAME..."
+    while true; do
+        NOT_READY=$(kubectl get pods -n $NAMESPACE -l "app.kubernetes.io/instance=$RELEASE_NAME" --no-headers 2>/dev/null \
+            | awk '{split($2,a,"/"); if(a[1]!=a[2]) print $1, $2, $3}')
+        if [[ -z "$NOT_READY" ]]; then
+            echo "✔ All pods for Helm release $RELEASE_NAME are ready."
+            break
+        else
+            echo "⌛ Pods not ready yet:"
+            echo "$NOT_READY"
+            sleep 5
+        fi
+    done
 
-#     # Fetch the auto-generated MSSQL password from the Helm secret
-#     PASSWORD=$(kubectl get secret -n $NAMESPACE ${RELEASE_NAME}-secret -o jsonpath="{.data.sapassword}" | base64 --decode)
-#     echo "🔑 Fetched MSSQL password from Helm chart: $PASSWORD"
+    # Fetch the auto-generated MSSQL password from the Helm secret
+    PASSWORD=$(kubectl get secret -n $NAMESPACE ${RELEASE_NAME}-secret -o jsonpath="{.data.sapassword}" | base64 --decode)
+    echo "🔑 Fetched MSSQL password from Helm chart: $PASSWORD"
 
-#     # Export for later use in POST request
-#     export MSSQL_PASSWORD="$PASSWORD"
-# }
+    # Export for later use in POST request
+    export MSSQL_PASSWORD="$PASSWORD"
+}
 
 # ---------------------------------------
 # 2. Wait for pods in namespace
@@ -335,7 +335,7 @@ main() {
     # ensure_kind
     ensure_kubectl
     ensure_helm
-    # install_mssql_helm
+    install_mssql_helm
     wait_for_pods
     deploy_gateway_api_crds
     deploy_agentgateway_crds
