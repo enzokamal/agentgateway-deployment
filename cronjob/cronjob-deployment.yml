@@ -63,7 +63,7 @@ data:
     source /config/credentials.txt
     NAMESPACE=agentgateway-system
     SECRET_NAME=hubspot-access-token
-    STATEFULSET_NAME=hubspot-mcp
+    DEPLOYMENT_NAME=hubspot-mcp
     echo "DEBUG CLIENT_ID: $CLIENT_ID"
     echo "DEBUG CLIENT_SECRET: $CLIENT_SECRET"
     echo "DEBUG REFRESH_TOKEN: $REFRESH_TOKEN"
@@ -93,8 +93,8 @@ data:
           -n "$NAMESPACE"
     fi
 
-    if [ -n "$STATEFULSET_NAME" ]; then
-        kubectl rollout restart statefulset "$STATEFULSET_NAME" -n "$NAMESPACE"
+    if [ -n "$DEPLOYMENT_NAME" ]; then
+        kubectl rollout restart deployment "$DEPLOYMENT_NAME" -n "$NAMESPACE"
     fi
 
     echo "Script completed successfully."

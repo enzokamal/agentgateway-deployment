@@ -260,6 +260,13 @@ deploy_mcp_agentgateway_ui() {
     echo_info "MCP Agentgateway UI deployed successfully!"
 }
 
+deploy_adk_agentgateway_ui() {
+    echo_info "Deploying ADK Agent Gateway UI..."
+    kubectl apply -f adk-ui-deployment/adk-ui-deployment.yml
+    kubectl apply -f adk-ui-deployment/adk-ui-http-route.yml
+    echo_info "ADK Agent Gateway UI deployed successfully!"
+}
+
 # ---------------------------------------
 # 6. Check/install screen
 # ---------------------------------------
@@ -270,28 +277,65 @@ check_screen() {
     fi
 }
 
-# Start port-forward in detached screen
-port_forward_service() {
-    echo_info "Ensuring port-forward for ${UI_SERVICE_NAME}..."
+# # Start port-forward in detached screen
+# port_forward_service() {
+#     echo_info "Ensuring port-forward for ${UI_SERVICE_NAME}..."
 
-    # Check if session exists and port-forward is running
+#     # Check if session exists and port-forward is running
+#     if screen -list | grep -qw "$SCREEN_SESSION"; then
+#         if pgrep -f "kubectl port-forward.*${UI_SERVICE_NAME}" >/dev/null; then
+#             echo_info "Port-forward already running."
+#             return 0
+#         else
+#             screen -S "$SCREEN_SESSION" -X quit 2>/dev/null || true
+#         fi
+#     fi
+
+#     # Start detached screen with auto-restart loop
+#     screen -dmS "$SCREEN_SESSION" bash -c \
+#         "while true; do kubectl port-forward svc/${UI_SERVICE_NAME} 4000:3000 -n "${AGENTGATEWAY_NAMESPACE}" ; sleep 5; done"
+
+
+#     echo_info "Port-forward started in detached screen: ${SCREEN_SESSION}"
+#     echo_info "Access UI at: http://localhost:4000"
+#     echo_info "To attach: screen -r ${SCREEN_SESSION}"
+# }
+
+# Start port-forward(s) in detached screen
+port_forward_service() {
+    echo_info "Ensuring port-forwards are running..."
+
+    # Kill existing screen session if present
     if screen -list | grep -qw "$SCREEN_SESSION"; then
-        if pgrep -f "kubectl port-forward.*${UI_SERVICE_NAME}" >/dev/null; then
-            echo_info "Port-forward already running."
-            return 0
-        else
-            screen -S "$SCREEN_SESSION" -X quit 2>/dev/null || true
-        fi
+        echo_info "Existing screen session found. Restarting..."
+        screen -S "$SCREEN_SESSION" -X quit 2>/dev/null || true
     fi
 
     # Start detached screen with auto-restart loop
-    screen -dmS "$SCREEN_SESSION" bash -c \
-        "while true; do kubectl port-forward svc/${UI_SERVICE_NAME} 4000:3000 -n "${AGENTGATEWAY_NAMESPACE}" ; sleep 5; done"
+    screen -dmS "$SCREEN_SESSION" bash -c "
+        while true; do
+            echo 'Starting port-forwards...'
 
-    echo_info "Port-forward started in detached screen: ${SCREEN_SESSION}"
-    echo_info "Access UI at: http://localhost:4000"
+            # UI service
+            kubectl port-forward svc/${UI_SERVICE_NAME} 4000:3000 -n ${AGENTGATEWAY_NAMESPACE} &
+            PF1=\$!
+
+            # ADK UI service
+            kubectl port-forward svc/adk-ui-service 5000:5000 -n ${AGENTGATEWAY_NAMESPACE} &
+            PF2=\$!
+
+            wait \$PF1 \$PF2
+            echo 'Port-forward exited. Restarting in 5s...'
+            sleep 5
+        done
+    "
+
+    echo_info "Port-forwards started in detached screen: ${SCREEN_SESSION}"
+    echo_info "UI Service      → http://localhost:4000"
+    echo_info "ADK UI Service  → http://localhost:5000"
     echo_info "To attach: screen -r ${SCREEN_SESSION}"
 }
+
 
 # Verify deployment
 verify_deployment() {
@@ -347,6 +391,7 @@ main() {
     deploy_cronjob
     create_azure_auth_policy
     deploy_mcp_agentgateway_ui
+    deploy_adk_agentgateway_ui
     check_screen
     port_forward_service
     verify_deployment
