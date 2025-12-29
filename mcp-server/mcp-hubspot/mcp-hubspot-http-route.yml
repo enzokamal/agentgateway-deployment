@@ -5,7 +5,7 @@ metadata:
   namespace: agentgateway-system
 spec:
   parentRefs:
-  - name: agentgateway
+  - name: agentgateway-proxy
   rules:
    - matches:
        - path:
