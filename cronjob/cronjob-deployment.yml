@@ -61,7 +61,7 @@ data:
     #!/bin/bash
     set -e
     source /config/credentials.txt
-    NAMESPACE=adapter
+    NAMESPACE=agentgateway-system
     SECRET_NAME=hubspot-access-token
     STATEFULSET_NAME=hubspot-mcp
     echo "DEBUG CLIENT_ID: $CLIENT_ID"
