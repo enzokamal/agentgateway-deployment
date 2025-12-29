@@ -63,7 +63,7 @@ data:
     source /config/credentials.txt
     NAMESPACE=agentgateway-system
     SECRET_NAME=hubspot-access-token
-    DEPLOYMENT_NAME=hubspot-mcp
+    DEPLOYMENT_NAME=mcp-hubspot
     echo "DEBUG CLIENT_ID: $CLIENT_ID"
     echo "DEBUG CLIENT_SECRET: $CLIENT_SECRET"
     echo "DEBUG REFRESH_TOKEN: $REFRESH_TOKEN"
