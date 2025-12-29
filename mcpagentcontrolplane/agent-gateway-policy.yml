@@ -2,19 +2,34 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayPolicy
 metadata:
   name: azure-mcp-authn-policy
+  namespace: agentgateway-system
 spec:
   targetRefs:
-    - name: agentgateway
-      kind: Gateway
-      group: gateway.networking.k8s.io
+  - group: gateway.networking.k8s.io
+    kind: Gateway
+    name: agentgateway
   traffic:
     jwtAuthentication:
       mode: Strict
       providers:
-        - issuer: https://sts.windows.net/6ba231bb-ad9e-41b9-b23d-674c80196bbd/
-          jwks:
-            remote:
-              uri: https://login.microsoftonline.com/6ba231bb-ad9e-41b9-b23d-674c80196bbd/discovery/keys
-              cacheDuration: 5m
-          audiences:
-            - "api://11ddc0cd-e6fc-48b6-8832-de61800fb41e"
+      - issuer: https://sts.windows.net/6ba231bb-ad9e-41b9-b23d-674c80196bbd/
+        audiences:
+        - api://11ddc0cd-e6fc-48b6-8832-de61800fb41e
+        jwks:
+          remote:
+            cacheDuration: 5m
+            backendRef:
+              group: ""
+              kind: Service
+              name: azure-ad-jwks
+              port: 443
+            jwksPath: /6ba231bb-ad9e-41b9-b23d-674c80196bbd/discovery/keys
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: azure-ad-jwks
+  namespace: agentgateway-system
+spec:
+  type: ExternalName
+  externalName: login.microsoftonline.com
