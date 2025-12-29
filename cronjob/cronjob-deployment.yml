@@ -124,7 +124,7 @@ rules:
   resources: ["secrets"]
   verbs: ["get", "create", "update", "patch"]
 - apiGroups: ["apps"]
-  resources: ["statefulsets"]
+  resources: ["deployments"]
   verbs: ["get", "update", "patch"]
 
 
