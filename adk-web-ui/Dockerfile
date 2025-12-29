@@ -25,11 +25,6 @@ COPY pyproject.toml uv.lock ./
 RUN uv sync --frozen
 
 # --------------------------
-# Add virtualenv bin to PATH
-# --------------------------
-ENV PATH="/app/.venv/bin:$PATH"
-
-# --------------------------
 # Copy only the UI script
 # --------------------------
 COPY adk_chat_ui.py .
@@ -43,9 +38,14 @@ USER appuser
 # --------------------------
 # Expose port if needed (optional)
 # --------------------------
-EXPOSE 8000
+EXPOSE 5000
+
+# --------------------------
+# Add virtualenv bin to PATH
+# --------------------------
+ENV PATH="/app/.venv/bin:$PATH"
 
 # --------------------------
 # Entrypoint
 # --------------------------
-ENTRYPOINT ["python3", "adk_chat_ui.py"]
+ENTRYPOINT ["python3", "run.py"]

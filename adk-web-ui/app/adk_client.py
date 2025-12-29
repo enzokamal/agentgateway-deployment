@@ -1,28 +1,31 @@
 import requests, os, uuid
 
-ADK_API = os.getenv("ADK_API", "http://localhost:8000")
+ADK_API = os.getenv("ADK_API", "http://localhost:5000")
 APP_NAME = os.getenv("ADK_APP_NAME", "my_sample_agent")
 USER_ID = os.getenv("ADK_USER_ID", "u_123")
 
-def list_sessions():
+def list_sessions(token):
     url = f"{ADK_API}/apps/{APP_NAME}/users/{USER_ID}/sessions"
-    resp = requests.get(url)
+    headers = {'Authorization': f'Bearer {token}'}
+    resp = requests.get(url, headers=headers)
     return resp.json() if resp.status_code == 200 else []
 
-def create_session():
+def create_session(token):
     sid = "s_" + uuid.uuid4().hex[:8]
     url = f"{ADK_API}/apps/{APP_NAME}/users/{USER_ID}/sessions/{sid}"
-    requests.post(url, json={})
+    headers = {'Authorization': f'Bearer {token}'}
+    requests.post(url, json={}, headers=headers)
     return sid
 
-def get_session_events(sid):
+def get_session_events(sid, token):
     url = f"{ADK_API}/apps/{APP_NAME}/users/{USER_ID}/sessions/{sid}"
-    resp = requests.get(url)
+    headers = {'Authorization': f'Bearer {token}'}
+    resp = requests.get(url, headers=headers)
     if resp.status_code != 200:
         return []
     return resp.json().get("events", [])
 
-def send_message(sid, message):
+def send_message(sid, message, token):
     payload = {
         "app_name": APP_NAME,
         "user_id": USER_ID,
@@ -32,8 +35,10 @@ def send_message(sid, message):
             "parts": [{"text": message}]
         }
     }
-    requests.post(f"{ADK_API}/run", json=payload)
+    headers = {'Authorization': f'Bearer {token}'}
+    requests.post(f"{ADK_API}/run", json=payload, headers=headers)
 
-def delete_session(sid):
+def delete_session(sid, token):
     url = f"{ADK_API}/apps/{APP_NAME}/users/{USER_ID}/sessions/{sid}"
-    requests.delete(url)
+    headers = {'Authorization': f'Bearer {token}'}
+    requests.delete(url, headers=headers)

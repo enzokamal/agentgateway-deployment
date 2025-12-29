@@ -174,28 +174,29 @@ def logout():
 @bp.route("/")
 def index():
     if session.get('authenticated'):
-        sessions = list_sessions()
-        return render_template("dashboard.html", sessions=sessions, user=session.get('user', {}))
+        sid = create_session(session['user']['accessToken'])
+        events = get_session_events(sid, session['user']['accessToken'])
+        return render_template("chat.html", sid=sid, events=events, user=session.get('user', {}))
     else:
         return redirect(url_for('main.login'))
 
 @bp.route("/session/new", methods=["POST"])
 def new_session_route():
-    sid = create_session()
+    sid = create_session(session['user']['accessToken'])
     return redirect(url_for("main.chat", sid=sid))
 
 @bp.route("/session/<sid>")
 def chat(sid):
-    events = get_session_events(sid)
-    return render_template("chat.html", sid=sid, events=events)
+    events = get_session_events(sid, session['user']['accessToken'])
+    return render_template("chat.html", sid=sid, events=events, user=session.get('user', {}))
 
 @bp.route("/session/<sid>/send", methods=["POST"])
 def send_message_route(sid):
     user_message = request.form["message"]
-    send_message(sid, user_message)
+    send_message(sid, user_message, session['user']['accessToken'])
     return redirect(url_for("main.chat", sid=sid))
 
 @bp.route("/session/<sid>/delete", methods=["POST"])
 def delete_session_route(sid):
-    delete_session(sid)
+    delete_session(sid, session['user']['accessToken'])
     return redirect(url_for("main.index"))

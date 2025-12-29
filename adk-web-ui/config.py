@@ -5,6 +5,7 @@ class Config:
     APP_NAME = os.getenv("ADK_APP_NAME", "my_sample_agent")
     USER_ID = os.getenv("ADK_USER_ID", "u_123")
     SECRET_KEY = os.getenv("SECRET_KEY", "dev_secret")
+    SESSION_TYPE = 'filesystem'
 
     # Entra ID Configuration
     AZURE_CLIENT_ID = os.getenv("AZURE_CLIENT_ID", "11ddc0cd-e6fc-48b6-8832-de61800fb41e")

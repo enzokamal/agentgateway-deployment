@@ -20,11 +20,11 @@ spec:
           replacePrefixMatch: /
     backendRefs:
     - name: adk-ui-service
-      port: 3000
+      port: 5000
   - matches:
     - path:
         type: PathPrefix
         value: /auth
     backendRefs:
     - name: adk-ui-service
-      port: 3000
+      port: 5000
