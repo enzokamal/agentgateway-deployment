@@ -2,11 +2,12 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
   name: mcp-hubspot-backend
+  namespace: agentgateway-system
 spec:
   mcp:
     targets:
     - name: mcp-hubspot-target
       static:
-        host: mcp-hubspot-service.default.svc.cluster.local
+        host: mcp-hubspot-service.agentgateway-system.svc.cluster.local
         port: 8000
         protocol: StreamableHTTP

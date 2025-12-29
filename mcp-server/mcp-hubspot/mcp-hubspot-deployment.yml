@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mcp-hubspot-sa
-  namespace: default
+  namespace: agentgateway-system
   annotations:
     azure.workload.identity/client-id: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
 ---
@@ -10,6 +10,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mcp-hubspot
+  namespace: agentgateway-system
 spec:
   selector:
     matchLabels:
@@ -29,6 +30,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: mcp-hubspot-service
+  namespace: agentgateway-system
   labels:
     app: mcp-hubspot
 spec:
