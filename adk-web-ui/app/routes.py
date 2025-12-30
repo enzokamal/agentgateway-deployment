@@ -1,240 +1,38 @@
-# from flask import Blueprint, render_template, request, redirect, url_for, session, current_app
-# from urllib.parse import urlencode
-# import requests
-# from .adk_client import list_sessions, create_session, get_session_events, send_message, delete_session
-
-# bp = Blueprint("main", __name__)
-
-# @bp.before_request
-# def require_auth():
-#     # Allow access to auth routes and login
-#     if request.endpoint in ['main.login', 'main.auth_callback', 'main.auth_store_tokens', 'main.auth_manual_token']:
-#         return
-#     if not session.get('authenticated'):
-#         return redirect(url_for('main.login'))
-
-# @bp.route("/login")
-# def login():
-#     from urllib.parse import quote
-#     # Make sure scope is properly formatted
-#     scope = "api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"
-    
-#     auth_url = (
-#         "https://login.microsoftonline.com/6ba231bb-ad9e-41b9-b23d-674c80196bbd/oauth2/v2.0/authorize?"
-#         + urlencode({
-#             "client_id": "11ddc0cd-e6fc-48b6-8832-de61800fb41e",
-#             "response_type": "code",
-#             "redirect_uri": "http://localhost:5000/auth/callback",
-#             "scope": scope,
-#             "response_mode": "query",
-#             "prompt": "select_account"
-#         })
-#     )
-#     print(f"Generated auth URL: {auth_url}")
-#     return render_template("login.html", auth_url=auth_url)
-
-# @bp.route("/login", methods=["POST"])
-# def login_post():
-#     # Mock authentication for development
-#     session['authenticated'] = True
-#     session['user'] = {
-#         'displayName': 'Test User',
-#         'name': 'Test User'
-#     }
-#     return redirect(url_for('main.index'))
-
-# @bp.route('/auth/callback')
-# def auth_callback():
-#     code = request.args.get('code')
-#     error = request.args.get('error')
-#     error_description = request.args.get('error_description')
-#     print(f"Auth callback received: code={code}, error={error}, error_description={error_description}")
-
-#     if error:
-#         return f'''
-#         <html>
-#         <head><title>Authentication Error</title></head>
-#         <body style="font-family: Arial, sans-serif; padding: 20px;">
-#           <h2>Authentication Error</h2>
-#           <p><strong>Error:</strong> {error}</p>
-#           <p><strong>Description:</strong> {error_description or 'No description provided'}</p>
-#           <script>
-#             window.opener.postMessage({{ type: 'auth_error', error: '{error}', description: '{error_description or ""}' }}, '*');
-#             window.close();
-#           </script>
-#         </body>
-#         </html>
-#         '''
-
-#     if code:
-#         try:
-#             print(f"Client secret present: {bool(current_app.config['AZURE_CLIENT_SECRET'])}")
-#             # Exchange code for tokens
-#             token_url = f"https://login.microsoftonline.com/{current_app.config['AZURE_TENANT_ID']}/oauth2/v2.0/token"
-#             data = {
-#                 'client_id': current_app.config['AZURE_CLIENT_ID'],
-#                 'client_secret': current_app.config['AZURE_CLIENT_SECRET'],
-#                 'code': code,
-#                 'grant_type': 'authorization_code',
-#                 'redirect_uri': current_app.config['REDIRECT_URI'],
-#                 'scope': current_app.config['AZURE_SCOPES'].replace('openid ', '')
-#             }
-#             print(f"Token exchange request: url={token_url}, data keys={list(data.keys())}, client_secret_set={bool(data['client_secret'])}, scope={data['scope']}, redirect_uri={data['redirect_uri']}")
-#             response = requests.post(token_url, data=data)
-#             print(f"Token exchange response status: {response.status_code}, headers: {dict(response.headers)}")
-#             if response.status_code != 200:
-#                 print(f"Token exchange failed: {response.text}")
-#                 try:
-#                     error_json = response.json()
-#                     print(f"Error details: {error_json}")
-#                 except:
-#                     print("No JSON error details")
-#             response.raise_for_status()
-#             tokens = response.json()
-#             print("Token exchange successful, tokens received")
-#             print(f"Tokens keys: {list(tokens.keys())}")
-
-#             return f'''
-#             <html>
-#             <head><title>Authentication Successful</title></head>
-#             <body style="font-family: Arial, sans-serif; padding: 20px;">
-#               <h2>Authentication Successful</h2>
-#               <p>You will be redirected shortly...</p>
-#               <script>
-#                 window.opener.postMessage({{
-#                   type: 'auth_success',
-#                   access_token: '{tokens.get("access_token", "")}',
-#                   refresh_token: '{tokens.get("refresh_token", "")}',
-#                   id_token: '{tokens.get("id_token", "")}'
-#                 }}, '*');
-#                 window.close();
-#               </script>
-#             </body>
-#             </html>
-#             '''
-#         except Exception as e:
-#             print(f"Exception in token exchange: {str(e)}")
-#             return f'''
-#             <html>
-#             <head><title>Authentication Error</title></head>
-#             <body style="font-family: Arial, sans-serif; padding: 20px;">
-#               <h2>Token Exchange Failed</h2>
-#               <p>Failed to exchange authorization code for access token.</p>
-#               <p>Error: {str(e)}</p>
-#               <script>
-#                 window.opener.postMessage({{
-#                   type: 'auth_error',
-#                   error: 'token_exchange_failed',
-#                   description: '{str(e)}'
-#                 }}, '*');
-#                 window.close();
-#               </script>
-#             </body>
-#             </html>
-#             '''
-
-#     return '''
-#     <html>
-#     <head><title>No Authorization Code</title></head>
-#     <body style="font-family: Arial, sans-serif; padding: 20px;">
-#       <h2>No Authorization Code</h2>
-#       <p>No authorization code was received. Please try the authentication process again.</p>
-#       <script>
-#         window.opener.postMessage({ type: 'auth_error', error: 'no_code', description: 'No authorization code received' }, '*');
-#         window.close();
-#       </script>
-#     </body>
-#     </html>
-#     '''
-
-# @bp.route('/auth/store-tokens', methods=['POST'])
-# def auth_store_tokens():
-#     data = request.get_json()
-#     access_token = data.get('access_token')
-#     refresh_token = data.get('refresh_token')
-#     id_token = data.get('id_token')
-
-#     if not access_token:
-#         return {'error': 'Access token is required'}, 400
-#     print("Storing tokens in session")
-#     print(f"Access token present: {bool(access_token)}, refresh: {bool(refresh_token)}, id: {bool(id_token)}")
-#     session['authenticated'] = True
-#     session['user'] = {
-#         'displayName': 'Authenticated User',
-#         'name': 'Authenticated User',
-#         'accessToken': access_token,
-#         'refreshToken': refresh_token,
-#         'idToken': id_token
-#     }
-
-#     return {'success': True, 'message': 'Authentication successful'}
-
-# @bp.route('/auth/manual-token', methods=['POST'])
-# def auth_manual_token():
-#     data = request.get_json()
-#     token = data.get('token')
-
-#     if not token:
-#         return {'error': 'Token is required'}, 400
-
-#     # Basic JWT check
-#     if not token.count('.') == 2:
-#         return {'error': 'Invalid token format'}, 400
-
-#     session['authenticated'] = True
-#     session['user'] = {
-#         'displayName': 'Manual Token User',
-#         'name': 'Manual Token User',
-#         'accessToken': token
-#     }
-
-#     return {'success': True, 'message': 'Manual token authentication successful'}
-
-# @bp.route('/logout')
-# def logout():
-#     session.clear()
-#     return redirect(url_for('main.login'))
-
-# @bp.route("/")
-# def index():
-#     print(f"Index route: authenticated={session.get('authenticated')}, user keys={list(session.get('user', {}).keys()) if session.get('user') else 'None'}")
-#     if session.get('authenticated'):
-#         sid = create_session(session['user']['accessToken'])
-#         events = get_session_events(sid, session['user']['accessToken'])
-#         return render_template("chat.html", sid=sid, events=events, user=session.get('user', {}))
-#     else:
-#         return redirect(url_for('main.login'))
-
-# @bp.route("/session/new", methods=["POST"])
-# def new_session_route():
-#     sid = create_session(session['user']['accessToken'])
-#     return redirect(url_for("main.chat", sid=sid))
-
-# @bp.route("/session/<sid>")
-# def chat(sid):
-#     events = get_session_events(sid, session['user']['accessToken'])
-#     return render_template("chat.html", sid=sid, events=events, user=session.get('user', {}))
-
-# @bp.route("/session/<sid>/send", methods=["POST"])
-# def send_message_route(sid):
-#     user_message = request.form["message"]
-#     send_message(sid, user_message, session['user']['accessToken'])
-#     return redirect(url_for("main.chat", sid=sid))
-
-# @bp.route("/session/<sid>/delete", methods=["POST"])
-# def delete_session_route(sid):
-#     delete_session(sid, session['user']['accessToken'])
-#     return redirect(url_for("main.index"))
-
-
 from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, jsonify
 from urllib.parse import urlencode, quote
 import requests
 import base64
 import json
 from .adk_client import list_sessions, create_session, get_session_events, send_message, delete_session
+import logging
+from datetime import datetime
 
 bp = Blueprint("main", __name__)
+
+# ADK Chat Blueprint
+adk_chat_bp = Blueprint("adk_chat", __name__, url_prefix='/adkChat')
+
+@adk_chat_bp.before_request
+def require_auth_chat():
+    """Middleware to check authentication before each chat request"""
+    # Allow access to static files without authentication
+    if request.endpoint and request.endpoint.endswith('static'):
+        return
+
+    # Check if user is authenticated
+    if not session.get('authenticated'):
+        print(f"[CHAT AUTH CHECK] Unauthenticated access attempt to: {request.endpoint}")
+        return redirect(url_for('main.login'))
+
+# --------------------------
+# ADK Chat Configuration
+# --------------------------
+ADK_API_BASE = 'http://localhost:8000'
+
+# --------------------------
+# In-memory session store for ADK Chat
+# --------------------------
+sessions_store = {}
 
 @bp.before_request
 def require_auth():
@@ -678,11 +476,9 @@ def index():
             print("[INDEX] Error: No access token in session")
             session.clear()
             return redirect(url_for('main.login'))
-        
-        sid = create_session(access_token)
-        events = get_session_events(sid, access_token)
-        
-        return render_template("chat.html", sid=sid, events=events, user=user)
+
+        # Redirect authenticated users to the chat UI
+        return redirect(url_for('adk_chat.adk_chat_index'))
     except Exception as e:
         print(f"[INDEX] Error: {str(e)}")
         # If token is invalid or expired, redirect to login
@@ -741,6 +537,146 @@ def delete_session_route(sid):
 def health():
     """Health check endpoint"""
     return jsonify({'status': 'healthy', 'authenticated': session.get('authenticated', False)})
+
+# --------------------------
+# ADK Chat Routes
+# --------------------------
+@adk_chat_bp.route('/')
+def adk_chat_index():
+    """ADK Chat main page"""
+    return render_template('adk_chat.html')
+
+@adk_chat_bp.route('/api/list-agents')
+def list_agents():
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info(f"Fetching agents from {ADK_API_BASE}/list-apps")
+        response = requests.get(f'{ADK_API_BASE}/list-apps', timeout=5)
+        if response.ok:
+            agents = response.json()
+            logger.info(f"Fetched agents: {agents}")
+            return jsonify(agents)
+        else:
+            logger.error(f"Failed to fetch agents: HTTP {response.status_code}")
+            return jsonify([]), response.status_code
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error listing agents: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@adk_chat_bp.route('/api/sessions')
+def get_sessions():
+    agent = request.args.get('agent')
+    user = request.args.get('user')
+    key = f"{agent}:{user}"
+    sessions = sessions_store.get(key, {})
+    logger = logging.getLogger(__name__)
+    logger.debug(f"Retrieved {len(sessions)} sessions for {key}")
+    return jsonify(sessions)
+
+@adk_chat_bp.route('/api/create-session', methods=['POST'])
+def create_session():
+    data = request.json
+    agent = data['agent']
+    user_id = data['userId']
+    session_id = data['sessionId']
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info(f"Creating session {session_id} for agent {agent}")
+        response = requests.post(
+            f'{ADK_API_BASE}/apps/{agent}/users/{user_id}/sessions/{session_id}',
+            json={},
+            timeout=5
+        )
+        if response.ok:
+            key = f"{agent}:{user_id}"
+            sessions_store.setdefault(key, {})[session_id] = {
+                'created': datetime.now().isoformat(),
+                'messages': []
+            }
+            logger.info(f"Session {session_id} created")
+            return jsonify({'status': 'success', 'sessionId': session_id})
+        else:
+            logger.error(f"Failed to create session: HTTP {response.status_code} - {response.text}")
+            return jsonify({'status': 'error', 'message': f'HTTP {response.status_code}'}), response.status_code
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error creating session: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@adk_chat_bp.route('/api/delete-session', methods=['DELETE'])
+def delete_session():
+    data = request.json
+    agent = data['agent']
+    user_id = data['userId']
+    session_id = data['sessionId']
+    try:
+        logger = logging.getLogger(__name__)
+        logger.info(f"Deleting session {session_id}")
+        requests.delete(f'{ADK_API_BASE}/apps/{agent}/users/{user_id}/sessions/{session_id}', timeout=5)
+        key = f"{agent}:{user_id}"
+        if key in sessions_store:
+            sessions_store[key].pop(session_id, None)
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error deleting session: {e}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@adk_chat_bp.route('/api/send-message', methods=['POST'])
+def send_message():
+    data = request.json
+    agent = data['agent']
+    user_id = data['userId']
+    session_id = data['sessionId']
+    message = data['message']
+    logger = logging.getLogger(__name__)
+    logger.info(f"Sending message to agent {agent}, session {session_id}")
+
+    try:
+        payload = {
+            'appName': agent,
+            'userId': user_id,
+            'sessionId': session_id,
+            'newMessage': {
+                'role': 'user',
+                'parts': [{'text': message}]
+            }
+        }
+        logger.debug(f"Request payload: {payload}")
+        response = requests.post(f'{ADK_API_BASE}/run', json=payload, timeout=240)
+        logger.debug(f"Response status: {response.status_code}")
+
+        if response.ok:
+            assistant_response = ""
+            try:
+                response_data = response.json()
+                for event in response_data:
+                    for part in event.get('content', {}).get('parts', []):
+                        assistant_response += part.get('text', '')
+            except Exception as e:
+                logger.error(f"Failed to parse response JSON: {e}")
+                assistant_response = str(response.text)
+
+            key = f"{agent}:{user_id}"
+            sessions_store.setdefault(key, {}).setdefault(session_id, {}).setdefault('messages', []).append({
+                'role': 'assistant',
+                'content': assistant_response,
+                'timestamp': datetime.now().isoformat()
+            })
+
+            return jsonify({'status': 'success', 'response': assistant_response})
+        else:
+            error_msg = f"HTTP {response.status_code}: {response.text}"
+            logger.error(f"Failed to get response: {error_msg}")
+            return jsonify({'status': 'error', 'message': error_msg}), response.status_code
+
+    except requests.exceptions.Timeout:
+        logger.error("Request timed out")
+        return jsonify({'status': 'error', 'message': 'Request timed out after 4 minutes'}), 504
+    except Exception as e:
+        logger.error(f"Error sending message: {e}", exc_info=True)
+        return jsonify({'status': 'error', 'message': str(e)}), 500
 
 @bp.route('/favicon.ico')
 def favicon():

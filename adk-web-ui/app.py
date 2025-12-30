@@ -17,8 +17,9 @@ def create_app(config_name='development'):
     Session(app)
     
     # Register blueprints
-    from app.routes import bp as main_bp
+    from app.routes import bp as main_bp, adk_chat_bp
     app.register_blueprint(main_bp)
+    app.register_blueprint(adk_chat_bp)
     
     # Debug logging
     @app.before_request
