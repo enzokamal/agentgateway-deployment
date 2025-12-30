@@ -1,0 +1,4 @@
+3.11
+Flask>=2.3
+Flask-Session>=0.5
+requests>=2.31

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In - MCP Application</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px;
+            max-width: 440px;
+            width: 100%;
+            animation: slideUp 0.5s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .logo h1 {
+            color: #333;
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .logo p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .auth-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .auth-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 24px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: white;
+            color: #333;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .auth-button:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+
+        .auth-button:active {
+            transform: translateY(0);
+        }
+
+        .auth-button svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .microsoft-button {
+            background: #2f2f2f;
+            color: white;
+            border-color: #2f2f2f;
+        }
+
+        .microsoft-button:hover {
+            background: #1a1a1a;
+            border-color: #1a1a1a;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            margin: 24px 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .divider span {
+            padding: 0 16px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .manual-token-form {
+            display: none;
+        }
+
+        .manual-token-form.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .submit-button {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .submit-button:active {
+            transform: translateY(0);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 16px;
+            color: #667eea;
+            font-size: 14px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background: #fee;
+            border: 1px solid #fcc;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .error-message.active {
+            display: block;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="logo">
+            <h1>MCP Application</h1>
+            <p>Sign in to continue</p>
+        </div>
+
+        <div id="error-message" class="error-message"></div>
+
+        <div id="auth-methods" class="auth-methods">
+            <a href="#" id="microsoft-signin" class="auth-button microsoft-button">
+                <svg viewBox="0 0 23 23" fill="currentColor">
+                    <path d="M0 0h11v11H0zM12 0h11v11H12zM0 12h11v11H0zM12 12h11v11H12z"/>
+                </svg>
+                Sign in with Microsoft
+            </a>
+
+            <div class="divider">
+                <span>OR</span>
+            </div>
+
+            <button type="button" id="show-manual-token" class="auth-button">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                Use Manual Token
+            </button>
+        </div>
+
+        <div id="manual-token-form" class="manual-token-form">
+            <form id="token-form">
+                <div class="form-group">
+                    <label for="token">Access Token</label>
+                    <textarea 
+                        id="token" 
+                        name="token" 
+                        placeholder="Paste your JWT token here..."
+                        required
+                    ></textarea>
+                </div>
+                <button type="submit" class="submit-button">Sign In</button>
+                <a id="back-to-methods" class="back-link">← Back to sign in methods</a>
+            </form>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Authenticating...</p>
+        </div>
+    </div>
+
+    <script>
+        const tenantId = "{{ tenant_id }}";
+        const clientId = "{{ client_id }}";
+        const redirectUri = "{{ redirect_uri }}";
+        const scope = "{{ scope }}";
+        const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
+        let authWindow = null;
+
+        // Microsoft Sign In
+        document.getElementById('microsoft-signin').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            console.log('Opening Microsoft sign-in window...');
+            console.log('Auth URL:', authUrl);
+            
+            // Open popup window
+            const width = 600;
+            const height = 700;
+            const left = (screen.width - width) / 2;
+            const top = (screen.height - height) / 2;
+            
+            authWindow = window.open(
+                authUrl,
+                'Microsoft Sign In',
+                `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no`
+            );
+
+            if (!authWindow) {
+                showError('Pop-up blocked! Please allow pop-ups for this site and try again.');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('auth-methods').style.display = 'none';
+            document.getElementById('loading').classList.add('active');
+        });
+
+        // Listen for messages from OAuth callback
+        window.addEventListener('message', async function(event) {
+            console.log('Received message:', event.data);
+
+            if (event.data.type === 'auth_success') {
+                console.log('Authentication successful, storing tokens...');
+                
+                try {
+                    const response = await fetch('/auth/store-tokens', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            access_token: event.data.access_token,
+                            refresh_token: event.data.refresh_token,
+                            id_token: event.data.id_token
+                        })
+                    });
+
+                    const result = await response.json();
+                    
+                    if (response.ok && result.success) {
+                        console.log('Tokens stored successfully, redirecting...');
+                        window.location.href = '/';
+                    } else {
+                        throw new Error(result.error || 'Failed to store tokens');
+                    }
+                } catch (error) {
+                    console.error('Error storing tokens:', error);
+                    showError('Failed to complete authentication: ' + error.message);
+                    resetUI();
+                }
+            } else if (event.data.type === 'auth_error') {
+                console.error('Authentication error:', event.data);
+                showError(`Authentication failed: ${event.data.description || event.data.error}`);
+                resetUI();
+            }
+        });
+
+        // Manual Token Form
+        document.getElementById('show-manual-token').addEventListener('click', function() {
+            document.getElementById('auth-methods').style.display = 'none';
+            document.getElementById('manual-token-form').classList.add('active');
+        });
+
+        document.getElementById('back-to-methods').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('manual-token-form').classList.remove('active');
+            document.getElementById('auth-methods').style.display = 'flex';
+            hideError();
+        });
+
+        document.getElementById('token-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const token = document.getElementById('token').value.trim();
+            
+            if (!token) {
+                showError('Please enter a token');
+                return;
+            }
+
+            document.getElementById('manual-token-form').style.display = 'none';
+            document.getElementById('loading').classList.add('active');
+
+            try {
+                const response = await fetch('/auth/manual-token', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ token })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    console.log('Manual token authentication successful');
+                    window.location.href = '/';
+                } else {
+                    throw new Error(result.error || 'Authentication failed');
+                }
+            } catch (error) {
+                console.error('Manual token error:', error);
+                showError('Failed to authenticate: ' + error.message);
+                resetUI();
+                document.getElementById('manual-token-form').style.display = 'block';
+            }
+        });
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('active');
+        }
+
+        function hideError() {
+            document.getElementById('error-message').classList.remove('active');
+        }
+
+        function resetUI() {
+            document.getElementById('loading').classList.remove('active');
+            document.getElementById('auth-methods').style.display = 'flex';
+            document.getElementById('manual-token-form').classList.remove('active');
+        }
+
+        // Check if we're returning from an auth flow
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error')) {
+            showError('Authentication error: ' + (urlParams.get('error_description') || urlParams.get('error')));
+        }
+    </script>
+</body>
+</html>
