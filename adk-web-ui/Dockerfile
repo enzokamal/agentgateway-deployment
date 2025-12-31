@@ -28,8 +28,7 @@ RUN uv sync --frozen
 # Copy application files
 # --------------------------
 COPY run.py .
-COPY app.py . 
-COPY app/ ./app/
+COPY app.py .
 COPY templates/ ./templates/
 COPY config.py .
 
@@ -52,4 +51,4 @@ ENV PATH="/app/.venv/bin:$PATH"
 # --------------------------
 # Entrypoint
 # --------------------------
-CMD ["uv", "run", "python", "app.py"]
+CMD ["uv", "run", "python", "run.py"]

@@ -2,7 +2,7 @@ import os
 
 class Config:
     # ADK API Configuration
-    ADK_API = os.getenv("ADK_API", "http://localhost:8000")
+    ADK_API = os.getenv("ADK_API", "http://adk-agent-service.agentgateway-system.svc.cluster.local:8070")
     APP_NAME = os.getenv("ADK_APP_NAME", "my_sample_agent")
     USER_ID = os.getenv("ADK_USER_ID", "u_123")
     

@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "super-secret-key")
 
-ADK_API_BASE = os.environ.get("ADK_API_BASE", "http://localhost:8000")
+ADK_API_BASE = os.environ.get("ADK_API_BASE", "http://localhost:8070")
 HOST = os.environ.get("ADK_CHAT_UI_HOST", "0.0.0.0")
 PORT = int(os.environ.get("ADK_CHAT_UI_PORT", 5000))
 
