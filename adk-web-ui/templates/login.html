@@ -226,6 +226,13 @@
 
         .error-message.active {
             display: block;
+            animation: shake 0.5s ease-out;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
         }
 
         .loading {
@@ -270,34 +277,6 @@
                 </svg>
                 Sign in with Microsoft
             </a>
-
-            <div class="divider">
-                <span>OR</span>
-            </div>
-
-            <button type="button" id="show-manual-token" class="auth-button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                Use Manual Token
-            </button>
-        </div>
-
-        <div id="manual-token-form" class="manual-token-form">
-            <form id="token-form">
-                <div class="form-group">
-                    <label for="token">Access Token</label>
-                    <textarea 
-                        id="token" 
-                        name="token" 
-                        placeholder="Paste your JWT token here..."
-                        required
-                    ></textarea>
-                </div>
-                <button type="submit" class="submit-button">Sign In</button>
-                <a id="back-to-methods" class="back-link">← Back to sign in methods</a>
-            </form>
         </div>
 
         <div id="loading" class="loading">
@@ -313,6 +292,7 @@
         const scope = "{{ scope }}";
         const authUrl = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scope)}`;
         let authWindow = null;
+        let authTimeout = null;
 
         // Microsoft Sign In
         document.getElementById('microsoft-signin').addEventListener('click', function(e) {
@@ -320,6 +300,9 @@
             
             console.log('Opening Microsoft sign-in window...');
             console.log('Auth URL:', authUrl);
+            
+            // Clear any existing error messages
+            hideError();
             
             // Open popup window
             const width = 600;
@@ -341,11 +324,37 @@
             // Show loading
             document.getElementById('auth-methods').style.display = 'none';
             document.getElementById('loading').classList.add('active');
+
+            // Set timeout to detect if popup was closed without completing auth
+            authTimeout = setTimeout(checkAuthWindowClosed, 1000);
         });
+
+        // Check if auth window was closed
+        function checkAuthWindowClosed() {
+            if (authWindow && authWindow.closed) {
+                console.log('Auth window was closed by user');
+                showError('Authentication was cancelled. Please try again.');
+                resetUI();
+            } else if (authWindow && !authWindow.closed) {
+                // Keep checking if window is still open
+                authTimeout = setTimeout(checkAuthWindowClosed, 1000);
+            }
+        }
 
         // Listen for messages from OAuth callback
         window.addEventListener('message', async function(event) {
             console.log('Received message:', event.data);
+
+            // Clear the timeout since we received a response
+            if (authTimeout) {
+                clearTimeout(authTimeout);
+                authTimeout = null;
+            }
+
+            // Close auth window if it's still open
+            if (authWindow && !authWindow.closed) {
+                authWindow.close();
+            }
 
             if (event.data.type === 'auth_success') {
                 console.log('Authentication successful, storing tokens...');
@@ -383,57 +392,6 @@
             }
         });
 
-        // Manual Token Form
-        document.getElementById('show-manual-token').addEventListener('click', function() {
-            document.getElementById('auth-methods').style.display = 'none';
-            document.getElementById('manual-token-form').classList.add('active');
-        });
-
-        document.getElementById('back-to-methods').addEventListener('click', function(e) {
-            e.preventDefault();
-            document.getElementById('manual-token-form').classList.remove('active');
-            document.getElementById('auth-methods').style.display = 'flex';
-            hideError();
-        });
-
-        document.getElementById('token-form').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const token = document.getElementById('token').value.trim();
-            
-            if (!token) {
-                showError('Please enter a token');
-                return;
-            }
-
-            document.getElementById('manual-token-form').style.display = 'none';
-            document.getElementById('loading').classList.add('active');
-
-            try {
-                const response = await fetch('/auth/manual-token', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ token })
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    console.log('Manual token authentication successful');
-                    window.location.href = '/';
-                } else {
-                    throw new Error(result.error || 'Authentication failed');
-                }
-            } catch (error) {
-                console.error('Manual token error:', error);
-                showError('Failed to authenticate: ' + error.message);
-                resetUI();
-                document.getElementById('manual-token-form').style.display = 'block';
-            }
-        });
-
         function showError(message) {
             const errorDiv = document.getElementById('error-message');
             errorDiv.textContent = message;
@@ -441,20 +399,43 @@
         }
 
         function hideError() {
-            document.getElementById('error-message').classList.remove('active');
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.classList.remove('active');
         }
 
         function resetUI() {
+            // Clear timeout if exists
+            if (authTimeout) {
+                clearTimeout(authTimeout);
+                authTimeout = null;
+            }
+
+            // Close auth window if still open
+            if (authWindow && !authWindow.closed) {
+                authWindow.close();
+            }
+            authWindow = null;
+
+            // Reset UI elements
             document.getElementById('loading').classList.remove('active');
             document.getElementById('auth-methods').style.display = 'flex';
-            document.getElementById('manual-token-form').classList.remove('active');
         }
 
-        // Check if we're returning from an auth flow
+        // Check if we're returning from an auth flow with errors
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('error')) {
             showError('Authentication error: ' + (urlParams.get('error_description') || urlParams.get('error')));
         }
+
+        // Clean up on page unload
+        window.addEventListener('beforeunload', function() {
+            if (authTimeout) {
+                clearTimeout(authTimeout);
+            }
+            if (authWindow && !authWindow.closed) {
+                authWindow.close();
+            }
+        });
     </script>
 </body>
 </html>
