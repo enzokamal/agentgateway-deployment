@@ -10,7 +10,7 @@ data:
   AGENT_MODE: "api"
   AGENT_PORT: "8070"
   AGENT_HOST: "0.0.0.0"
-  MCP_SERVERS_JSON: "[{'url':'http://172.17.0.1:8080/mcp'}]"
+  MCP_SERVERS_JSON: '[{"url":"http://mcp-example-service:8000/mcp/mcp-example"}]'
 
 
 ---
