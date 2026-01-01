@@ -24,7 +24,7 @@ spec:
       serviceAccountName: adk-ui-sa
       containers:
       - name: adk-ui
-        image: kamalberrybytes/adk-web-ui:0.0.1
+        image: kamalberrybytes/adk-web-ui:modular-app
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
