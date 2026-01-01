@@ -267,6 +267,13 @@ deploy_adk_agentgateway_ui() {
     echo_info "ADK Agent Gateway UI deployed successfully!"
 }
 
+deploy_adk_agent_deployment(){
+    echo_info "Deploying ADK Agent"
+    kubectl apply -f adk-agent-deployment/adk-agent-deployment.yml
+
+    echo_info "ADK Agent Deployed successfully!"
+}
+
 # # ---------------------------------------
 # # 6. Check/install screen
 # # ---------------------------------------
@@ -343,7 +350,7 @@ verify_deployment() {
     echo ""
      
     echo_info "AgentGateway deployment status:"
-    kubectl get deployment agentgateway-proxy -n "${AGENTGATEWAY_NAMESPACE}" || echo_warn "Deployment not found"
+    kubectl get deployment agentgateway-proxy adk-agent-deployment adk-ui -n "${AGENTGATEWAY_NAMESPACE}" || echo_warn "Deployment not found"
     echo ""
     
     echo_info "MCP servers status:"
@@ -392,6 +399,7 @@ main() {
     create_azure_auth_policy
     # deploy_mcp_agentgateway_ui
     deploy_adk_agentgateway_ui
+    deploy_adk_agent_deployment
     # check_screen
     # port_forward_service
     verify_deployment
