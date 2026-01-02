@@ -10,8 +10,7 @@ data:
   AGENT_MODE: "api"
   AGENT_PORT: "8070"
   AGENT_HOST: "0.0.0.0"
-  MCP_SERVERS_JSON: '[{"url":"http://mcp-example-service:8000/mcp/mcp-example"}]'
-
+  MCP_SERVERS_JSON: '[{"url":"http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080/mcp/mcp-mssql"}]'
 
 ---
 # apiVersion: v1

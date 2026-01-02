@@ -39,6 +39,8 @@ spec:
           value: ""
         - name: REDIRECT_URI
           value: "http://localhost:5000/auth/callback"
+        - name: ADK_API
+          value: "http://adk-agent-service.agentgateway-system.svc.cluster.local:8070"
 ---
 apiVersion: v1
 kind: Service
