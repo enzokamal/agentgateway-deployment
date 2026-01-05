@@ -1,0 +1,95 @@
+# --------------------------
+# ConfigMap for environment variables
+# --------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: adk-agent-config
+  namespace: agentgateway-system
+data:
+  AGENT_MODE: "api"
+  AGENT_PORT: "8070"
+  AGENT_HOST: "0.0.0.0"
+  MCP_SERVERS_JSON: '[{"url":"http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080/mcp/mcp-mssql"}]'
+
+---
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: adk-agent-config
+# data:ff
+#   MCP_SERVERS_JSON: |
+#     [
+#       {"url": "http://10.1.1.40:30387/mcp/mcp-mssql"},
+#       {"url": "http://10.1.1.40:30387/mcp/mcp-hubspot"},
+#       {"url": "http://10.1.1.125/mcp", "auth": true}
+#     ]
+#   MCP_AUTH_SCHEME: "Bearer"
+# ---
+# http://10.1.1.40:30387/mcp/mcp-hubspot, http://10.1.1.40:30387/mcp/mcp-mssql
+# --------------------------
+# Deployment
+# --------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: adk-agent-deployment
+  namespace: agentgateway-system
+  labels:
+    app: adk-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: adk-agent
+  template:
+    metadata:
+      labels:
+        app: adk-agent
+    spec:
+      containers:
+        - name: adk-agent
+          image: sawnjordan/multi-agent:v0.6
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+            - containerPort: 8070
+          envFrom:
+          - configMapRef:
+              name: adk-agent-config
+          - secretRef:
+              name: adk-agent-secrets
+          # Kubernetes health checks
+          # readinessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8070
+          #   initialDelaySeconds: 5
+          #   periodSeconds: 10
+          #   failureThreshold: 3
+          # livenessProbe:
+          #   httpGet:
+          #     path: /
+          #     port: 8070
+          #   initialDelaySeconds: 15
+          #   periodSeconds: 20
+          #   failureThreshold: 3
+      restartPolicy: Always
+
+---
+# --------------------------
+# Service (ClusterIP)
+# --------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: adk-agent-service
+  namespace: agentgateway-system
+spec:
+  selector:
+    app: adk-agent
+  ports:
+    - protocol: TCP
+      port: 8070
+      targetPort: 8070
+  type: ClusterIP

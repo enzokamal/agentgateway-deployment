@@ -25,6 +25,18 @@ spec:
       - name: mcp-mssql
         image: kamalberrybytes/mssql-mcp:v1
         imagePullPolicy: Always
+        env:
+          - name: MSSQL_SERVER
+            value: "my-mssqlserver-2022"
+          - name: MSSQL_DATABASE
+            value: "msdb"
+          - name: MSSQL_PORT
+            value: "1433"
+          - name: MSSQL_USER
+            value: "sa"
+          - name: MSSQL_PASSWORD
+            value: ""
+      
 ---
 apiVersion: v1   
 kind: Service
