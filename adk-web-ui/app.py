@@ -79,9 +79,14 @@ def create_app(config_name='development'):
     from routes.auth import auth_bp
     from routes.chat import chat_bp
     from routes.health import health_bp
+    from routes.api_routes import api_bp
+    from routes.view_routes import view_bp
+    from services.session_service import SessionService
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(chat_bp)
+    # app.register_blueprint(chat_bp)
+    app.register_blueprint(api_bp(adk_service, session_service))
+    app.register_blueprint(view_bp())
     app.register_blueprint(health_bp)
 
     # Log initialization
