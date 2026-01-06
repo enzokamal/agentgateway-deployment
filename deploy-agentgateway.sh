@@ -196,7 +196,7 @@ deploy_agentgateway() {
 # Create agentgateway proxy
 create_agentgateway_proxy() {
     echo_info "Creating agentgateway proxy..."
-    kubectl apply -f mcpagentcontrolplane/mcp-gateway-proxy.yml
+    kubectl apply -f mcpagentcontrolplane/mcp-gateway-proxy.yml -n "${AGENTGATEWAY_NAMESPACE}"
     echo_info "agentgateway proxy created!"
 }
 
@@ -216,19 +216,19 @@ deploy_mcp_servers() {
     echo_info "Deploying MCP servers..."
     
     # Deploy mcp-example
-    kubectl apply -f mcp-server/mcp-example/mcp-example-deployment.yml
-    kubectl apply -f mcp-server/mcp-example/mcp-example-backend.yml
-    kubectl apply -f mcp-server/mcp-example/mcp-example-http-route.yml
+    kubectl apply -f mcp-server/mcp-example/mcp-example-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f mcp-server/mcp-example/mcp-example-backend.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f mcp-server/mcp-example/mcp-example-http-route.yml -n "${AGENTGATEWAY_NAMESPACE}"
 
     # Deploy mcp-hubspot
-    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml
-    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-backend.yml
-    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-http-route.yml
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-backend.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-http-route.yml -n "${AGENTGATEWAY_NAMESPACE}"
 
     # Deploy mcp-mssql
-    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-deployment.yml
-    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-backend.yml
-    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-http-route.yml
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-backend.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f mcp-server/mcp-mssql/mcp-sql-http-route.yml -n "${AGENTGATEWAY_NAMESPACE}"
     
     echo_info "MCP servers deployed successfully!"
 }
@@ -249,7 +249,7 @@ create_azure_auth_policy() {
     fi
 
     echo_info "Creating Azure AD authentication policy..."
-    kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml
+    kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml -n "${AGENTGATEWAY_NAMESPACE}"
     echo_info "Azure AD authentication policy created!"
 }
 
@@ -263,15 +263,15 @@ create_azure_auth_policy() {
 
 deploy_adk_agentgateway_ui() {
     echo_info "Deploying ADK Agent Gateway UI..."
-    kubectl apply -f adk-ui-deployment/adk-ui-deployment.yml
-    kubectl apply -f adk-ui-deployment/adk-ui-http-route.yml
+    kubectl apply -f adk-ui-deployment/adk-ui-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f adk-ui-deployment/adk-ui-http-route.yml -n "${AGENTGATEWAY_NAMESPACE}"
     echo_info "ADK Agent Gateway UI deployed successfully!"
 }
 
 deploy_adk_agent_deployment(){
     echo_info "Deploying ADK Agent"
-    kubectl apply -f adk-agent-deployment/adk-agent-deployment.yml
-    kubectl apply -f adk-agent-deployment/adk-secret.yml
+    kubectl apply -f adk-agent-deployment/adk-agent-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
+    kubectl apply -f adk-agent-deployment/adk-secret.yml -n "${AGENTGATEWAY_NAMESPACE}"
 
     echo_info "ADK Agent Deployed successfully!"
 }

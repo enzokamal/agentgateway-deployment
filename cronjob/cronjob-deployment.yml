@@ -2,14 +2,12 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mcpgateway
-  namespace: agentgateway-system
 
 ---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: hubspot-token-cronjob
-  namespace: agentgateway-system
 spec:
   schedule: "*/23 * * * *"  # Every 25 minutes
   jobTemplate:
@@ -51,7 +49,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: hubspot-script-config
-  namespace: agentgateway-system
 data:
   credentials.txt: |
     CLIENT_ID=3770101b-d97c-4e3f-8f7d-f530e1d3f9d3
@@ -105,7 +102,6 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: credentials
-  namespace: agentgateway-system
 type: Opaque
 data:
   CLIENT_ID: Mzc3MDEwMWItZDk3Yy00ZTNmLThiN2QtZjUzMGUxZDNmOWQz
@@ -118,7 +114,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: cronjob-cluster-role
-  namespace: agentgateway-system
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
@@ -134,11 +129,9 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: cronjob-cluster-rolebinding
-  namespace: agentgateway-system
 subjects:
 - kind: ServiceAccount
   name: mcpgateway
-  namespace: agentgateway-system
 roleRef:
   kind: ClusterRole
   name: cronjob-cluster-role
