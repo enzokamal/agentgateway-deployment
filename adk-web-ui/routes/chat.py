@@ -107,7 +107,7 @@ def send_message():
             }
         }
         logger.debug(f"Request payload: {payload}")
-        response = requests.post(f'{adk_api}/run', json=payload, timeout=240)
+        response = requests.post(f'{adk_api}/run', json=payload, timeout=600)
         logger.debug(f"Response status: {response.status_code}")
 
         if response.ok:
