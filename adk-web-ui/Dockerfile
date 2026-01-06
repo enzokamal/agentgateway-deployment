@@ -27,19 +27,9 @@ RUN uv sync --frozen
 # --------------------------
 # Copy application files
 # --------------------------
-COPY run.py .
-COPY app.py .
-COPY templates/ ./templates/
-COPY config.py .
-COPY routes/ ./routes/
-COPY auth/ ./auth/
-COPY session_manager.py .
-COPY utils.py .
-COPY adk_chat_graph_ui.py .
-COPY adk_chat_sessions.db .
-COPY adk_chat_ui_memory.py .
-COPY chart_tool.py .
-COPY main.py .
+
+COPY . . 
+
 
 # --------------------------
 # Create non-root user
