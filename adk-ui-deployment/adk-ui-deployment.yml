@@ -24,7 +24,7 @@ spec:
       serviceAccountName: adk-ui-sa
       containers:
       - name: adk-ui
-        image: kamalberrybytes/adk-web-ui:modular-app
+        image: kamalberrybytes/adk-web-ui:0.0.2
         imagePullPolicy: Always
         ports:
         - containerPort: 5000
@@ -41,6 +41,10 @@ spec:
           value: "http://localhost:5000/auth/callback"
         - name: ADK_API
           value: "http://adk-agent-service.agentgateway-system.svc.cluster.local:8070"
+        - name: SECRET_KEY
+          value: "helloworld"
+        - name: AZURE_SCOPES
+          value: "openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"
 ---
 apiVersion: v1
 kind: Service
