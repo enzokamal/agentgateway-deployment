@@ -8,11 +8,11 @@ logger = logging.getLogger(__name__)
 
 def exchange_code_for_tokens(code):
     """Exchange authorization code for access tokens"""
-    tenant_id = current_app.config.get('AZURE_TENANT_ID', '6ba231bb-ad9e-41b9-b23d-674c80196bbd')
-    client_id = current_app.config.get('AZURE_CLIENT_ID', '11ddc0cd-e6fc-48b6-8832-de61800fb41e')
-    client_secret = current_app.config.get('AZURE_CLIENT_SECRET', '')
-    redirect_uri = current_app.config.get('REDIRECT_URI', 'http://localhost:5000/auth/callback')
-    scope = current_app.config.get('AZURE_SCOPES', 'openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access')
+    tenant_id = current_app.config.get('AZURE_TENANT_ID')
+    client_id = current_app.config.get('AZURE_CLIENT_ID')
+    client_secret = current_app.config.get('AZURE_CLIENT_SECRET')
+    redirect_uri = current_app.config.get('REDIRECT_URI')
+    scope = current_app.config.get('AZURE_SCOPES')
 
     token_url = f"https://login.microsoftonline.com/{tenant_id}/oauth2/v2.0/token"
 

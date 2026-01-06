@@ -22,7 +22,7 @@ spec:
       serviceAccountName: adk-ui-sa
       containers:
       - name: adk-ui
-        image: kamalberrybytes/adk-web-ui:0.0.3
+        image: kamalberrybytes/adk-web-ui:v4
         imagePullPolicy: Always
         ports:
         - containerPort: 5000

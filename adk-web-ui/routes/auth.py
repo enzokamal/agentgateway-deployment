@@ -9,10 +9,10 @@ auth_bp = Blueprint('auth', __name__)
 @auth_bp.route('/login')
 def login():
     """Initiate Azure AD OAuth flow"""
-    tenant_id = current_app.config.get('AZURE_TENANT_ID', '6ba231bb-ad9e-41b9-b23d-674c80196bbd')
-    client_id = current_app.config.get('AZURE_CLIENT_ID', '11ddc0cd-e6fc-48b6-8832-de61800fb41e')
-    redirect_uri = current_app.config.get('REDIRECT_URI', 'http://localhost:5000/auth/callback')
-    scope = current_app.config.get('AZURE_SCOPES', 'openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access')
+    tenant_id = current_app.config.get('AZURE_TENANT_ID')
+    client_id = current_app.config.get('AZURE_CLIENT_ID')
+    redirect_uri = current_app.config.get('REDIRECT_URI')
+    scope = current_app.config.get('AZURE_SCOPES')
 
     return render_template("login.html", tenant_id=tenant_id, client_id=client_id, redirect_uri=redirect_uri, scope=scope)
 

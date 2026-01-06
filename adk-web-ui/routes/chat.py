@@ -23,7 +23,7 @@ def index():
 @chat_bp.route('/api/list-agents')
 def list_agents():
     try:
-        adk_api = current_app.config.get('ADK_API', 'http://localhost:8000')
+        adk_api = current_app.config.get('ADK_API')
         logger.info(f"Fetching agents from {adk_api}/list-apps")
         response = requests.get(f'{adk_api}/list-apps', timeout=5)
         if response.ok:
@@ -52,7 +52,7 @@ def create_session_route():
     user_id = data['userId']
     session_id = data['sessionId']
     try:
-        adk_api = current_app.config.get('ADK_API', 'http://localhost:8000')
+        adk_api = current_app.config.get('ADK_API')
         logger.info(f"Creating session {session_id} for agent {agent}")
         response = requests.post(
             f'{adk_api}/apps/{agent}/users/{user_id}/sessions/{session_id}',
@@ -77,7 +77,7 @@ def delete_session_route():
     user_id = data['userId']
     session_id = data['sessionId']
     try:
-        adk_api = current_app.config.get('ADK_API', 'http://localhost:8000')
+        adk_api = current_app.config.get('ADK_API')
         logger.info(f"Deleting session {session_id}")
         requests.delete(f'{adk_api}/apps/{agent}/users/{user_id}/sessions/{session_id}', timeout=5)
         delete_session(agent, user_id, session_id)
@@ -96,7 +96,7 @@ def send_message():
     logger.info(f"Sending message to agent {agent}, session {session_id}")
 
     try:
-        adk_api = current_app.config.get('ADK_API', 'http://localhost:8000')
+        adk_api = current_app.config.get('ADK_API')
         payload = {
             'appName': agent,
             'userId': user_id,

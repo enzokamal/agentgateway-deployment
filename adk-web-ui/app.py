@@ -102,7 +102,7 @@ def create_app(config_name='development'):
     print(f"Azure Scopes: {app.config.get('AZURE_SCOPES')}")
     print(f"Redirect URI: {app.config.get('REDIRECT_URI')}")
     print(f"Client Secret Set: {bool(app.config.get('AZURE_CLIENT_SECRET'))}")
-    print(f"ADK API: {app.config.get('ADK_API', 'http://localhost:8000')}")
+    print(f"ADK API: {app.config.get('ADK_API')}")
     print(f"{'='*70}\n")
 
     return app
