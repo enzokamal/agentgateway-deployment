@@ -10,12 +10,12 @@ readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m'
 
 # Configuration variables
-readonly AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"
-readonly AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"
+# readonly AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"
+# readonly AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"
 readonly AGENTGATEWAY_CRDS_VERSION="${AGENTGATEWAY_CRDS_VERSION:-v2.2.0-beta.4}"
 readonly GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
 readonly UI_SERVICE_NAME="adk-ui-service"
-readonly AGENTGATEWAY_NAMESPACE="agentgateway-system"
+readonly AGENTGATEWAY_NAMESPACE="test"
 readonly DEFAULT_TIMEOUT="300s"
 
 # Logging functions
@@ -67,48 +67,6 @@ ensure_helm() {
     echo_info "Installing Helm..."
     curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
     echo_info "Helm installed: $(helm version --short)"
-}
-
-# ---------------------------------------
-# 1. Install Helm chart
-# ---------------------------------------
-install_mssql_helm() {
-    RELEASE_NAME="my-mssqlserver-2022"
-    CHART="simcube/mssqlserver-2022"
-    VERSION="1.2.3"
-    NAMESPACE="agentgateway-system"
-
-    echo "🔹 Adding Helm repo simcube..."
-    helm repo add simcube https://simcubeltd.github.io/simcube-helm-charts/
-    helm repo update
-
-    if helm list -n $NAMESPACE | grep -qw "$RELEASE_NAME"; then
-        echo "✔ Helm release $RELEASE_NAME already installed."
-    else
-        echo "🚀 Installing Helm chart $CHART..."
-        helm install $RELEASE_NAME $CHART --version $VERSION -n $NAMESPACE --create-namespace
-    fi
-
-    echo "⏳ Waiting for pods from Helm release $RELEASE_NAME..."
-    while true; do
-        NOT_READY=$(kubectl get pods -n $NAMESPACE -l "app.kubernetes.io/instance=$RELEASE_NAME" --no-headers 2>/dev/null \
-            | awk '{split($2,a,"/"); if(a[1]!=a[2]) print $1, $2, $3}')
-        if [[ -z "$NOT_READY" ]]; then
-            echo "✔ All pods for Helm release $RELEASE_NAME are ready."
-            break
-        else
-            echo "⌛ Pods not ready yet:"
-            echo "$NOT_READY"
-            sleep 5
-        fi
-    done
-
-    # Fetch the auto-generated MSSQL password from the Helm secret
-    PASSWORD=$(kubectl get secret -n $NAMESPACE ${RELEASE_NAME}-secret -o jsonpath="{.data.sapassword}" | base64 --decode)
-    echo "🔑 Fetched MSSQL password from Helm chart: $PASSWORD"
-
-    # Export for later use in POST request
-    export MSSQL_PASSWORD="$PASSWORD"
 }
 
 
@@ -198,11 +156,11 @@ deploy_mcp_servers() {
 
 # Create Azure AD authentication policy
 create_azure_auth_policy() {
-    if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
-        echo_warn "Azure credentials not provided. Skipping Azure AD authentication policy."
-        echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
-        return 0
-    fi
+    # if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
+    #     echo_warn "Azure credentials not provided. Skipping Azure AD authentication policy."
+    #     echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
+    #     return 0
+    # fi
 
     echo_info "Creating Azure AD authentication policy..."
     kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml -n "${AGENTGATEWAY_NAMESPACE}"
@@ -257,7 +215,6 @@ main() {
 
     ensure_kubectl
     ensure_helm
-    install_mssql_helm
     deploy_gateway_api_crds
     deploy_agentgateway_crds
     deploy_agentgateway
