@@ -12,7 +12,6 @@ spec:
       labels:
         app: adk-ui
     spec:
-      serviceAccountName: adk-ui-sa
       containers:
       - name: adk-ui
         image: kamalberrybytes/adk-web-ui:v4
