@@ -1,6 +1,3 @@
-# --------------------------
-# ConfigMap for environment variables
-# --------------------------
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -12,23 +9,6 @@ data:
   MCP_SERVERS_JSON: '[{"url":"http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080/mcp/mcp-mssql"}]'
 
 ---
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: adk-agent-config
-# data:ff
-#   MCP_SERVERS_JSON: |
-#     [
-#       {"url": "http://10.1.1.40:30387/mcp/mcp-mssql"},
-#       {"url": "http://10.1.1.40:30387/mcp/mcp-hubspot"},
-#       {"url": "http://10.1.1.125/mcp", "auth": true}
-#     ]
-#   MCP_AUTH_SCHEME: "Bearer"
-# ---
-# http://10.1.1.40:30387/mcp/mcp-hubspot, http://10.1.1.40:30387/mcp/mcp-mssql
-# --------------------------
-# Deployment
-# --------------------------
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -57,21 +37,6 @@ spec:
               name: adk-agent-config
           - secretRef:
               name: adk-agent-secrets
-          # Kubernetes health checks
-          # readinessProbe:
-          #   httpGet:
-          #     path: /
-          #     port: 8070
-          #   initialDelaySeconds: 5
-          #   periodSeconds: 10
-          #   failureThreshold: 3
-          # livenessProbe:
-          #   httpGet:
-          #     path: /
-          #     port: 8070
-          #   initialDelaySeconds: 15
-          #   periodSeconds: 20
-          #   failureThreshold: 3
       restartPolicy: Always
 
 ---

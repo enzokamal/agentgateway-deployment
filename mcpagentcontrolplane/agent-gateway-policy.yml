@@ -11,7 +11,7 @@ spec:
     jwtAuthentication:
       mode: Strict
       providers:
-      - issuer: https://sts.windows.net/6ba231bb-ad9e-41b9-b23d-674c80196bbd/
+      - issuer: https://sts.windows.net/a842fba6-0f79-40e7-98f3-21cb1a8c3365/
         audiences:
         - api://11ddc0cd-e6fc-48b6-8832-de61800fb41e
         jwks:
@@ -22,7 +22,7 @@ spec:
               kind: Service
               name: azure-ad-jwks
               port: 443
-            jwksPath: /6ba231bb-ad9e-41b9-b23d-674c80196bbd/discovery/keys
+            jwksPath: /a842fba6-0f79-40e7-98f3-21cb1a8c3365/discovery/keys
 ---
 apiVersion: v1
 kind: Service
