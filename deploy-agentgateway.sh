@@ -128,11 +128,6 @@ wait_for_agentgateway_proxy() {
 # Deploy MCP servers
 deploy_mcp_servers() {
     echo_info "Deploying MCP servers..."
-    
-    # Deploy mcp-example
-    kubectl apply -f mcp-server/mcp-example/mcp-example-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
-    kubectl apply -f mcp-server/mcp-example/mcp-example-backend.yml -n "${AGENTGATEWAY_NAMESPACE}"
-    kubectl apply -f mcp-server/mcp-example/mcp-example-http-route.yml -n "${AGENTGATEWAY_NAMESPACE}"
 
     # Deploy mcp-hubspot
     kubectl apply -f mcp-server/mcp-hubspot/mcp-hubspot-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
@@ -193,7 +188,7 @@ verify_deployment() {
     echo ""
     
     echo_info "MCP servers status:"
-    kubectl get deployment mcp-example mcp-hubspot mcp-mssql -n "${AGENTGATEWAY_NAMESPACE}" || echo_warn "Some deployments not found"
+    kubectl get deployment mcp-hubspot mcp-mssql -n "${AGENTGATEWAY_NAMESPACE}" || echo_warn "Some deployments not found"
     echo ""
     
 }
