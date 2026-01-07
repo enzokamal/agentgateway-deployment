@@ -1,10 +1,3 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-mssql-sa
-  annotations:
-    azure.workload.identity/client-id: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,7 +11,6 @@ spec:
       labels:
         app: mcp-mssql
     spec:
-      serviceAccountName: mcp-mssql-sa
       containers:
       - name: mcp-mssql
         image: kamalberrybytes/mssql-mcp:v1

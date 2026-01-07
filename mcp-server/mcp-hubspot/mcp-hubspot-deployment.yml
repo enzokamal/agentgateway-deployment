@@ -1,10 +1,4 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-hubspot-sa
-  annotations:
-    azure.workload.identity/client-id: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
----
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,7 +12,6 @@ spec:
       labels:
         app: mcp-hubspot
     spec:
-      serviceAccountName: mcp-hubspot-sa
       containers:
       - name: mcp-hubspot
         image: kamalberrybytes/mcp-hubspot:latest
