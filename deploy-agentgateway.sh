@@ -10,12 +10,10 @@ readonly YELLOW='\033[1;33m'
 readonly NC='\033[0m'
 
 # Configuration variables
-# readonly AZURE_TENANT_ID="${AZURE_TENANT_ID:-}"
-# readonly AZURE_CLIENT_ID="${AZURE_CLIENT_ID:-}"
 readonly AGENTGATEWAY_CRDS_VERSION="${AGENTGATEWAY_CRDS_VERSION:-v2.2.0-beta.4}"
 readonly GATEWAY_API_VERSION="${GATEWAY_API_VERSION:-v1.4.0}"
 readonly UI_SERVICE_NAME="adk-ui-service"
-readonly AGENTGATEWAY_NAMESPACE="test"
+readonly AGENTGATEWAY_NAMESPACE="agentgateway-system"
 readonly DEFAULT_TIMEOUT="300s"
 
 # Logging functions
@@ -142,20 +140,9 @@ deploy_mcp_servers() {
     echo_info "MCP servers deployed successfully!"
 }
 
-# # Deploy cronjob
-# deploy_cronjob() {
-#     echo_info "Deploying cronjob..."
-#     kubectl apply -f cronjob/cronjob-deployment.yml -n "${AGENTGATEWAY_NAMESPACE}"
-#     echo_info "Cronjob deployed successfully!"
-# }
 
 # Create Azure AD authentication policy
 create_azure_auth_policy() {
-    # if [[ -z "$AZURE_TENANT_ID" ]] || [[ -z "$AZURE_CLIENT_ID" ]]; then
-    #     echo_warn "Azure credentials not provided. Skipping Azure AD authentication policy."
-    #     echo_warn "Set AZURE_TENANT_ID and AZURE_CLIENT_ID environment variables to enable Azure AD auth."
-    #     return 0
-    # fi
 
     echo_info "Creating Azure AD authentication policy..."
     kubectl apply -f mcpagentcontrolplane/agent-gateway-policy.yml -n "${AGENTGATEWAY_NAMESPACE}"
