@@ -1,0 +1,22 @@
+image:
+  repository: kamalberrybytes/mcp-mssql
+  tag: latest
+  pullPolicy: Always
+
+replicas: 1
+
+service:
+  port: 8000
+  targetPort: 8000
+
+backend:
+  name: mcp-mssql-backend
+  targetName: mcp-mssql-target
+  host: mcp-mssql-service.{{ .Values.namespace }}.svc.cluster.local
+  port: 8000
+  protocol: StreamableHTTP
+
+httpRoute:
+  path: /mcp/mcp-mssql
+
+namespace: agentgateway-system

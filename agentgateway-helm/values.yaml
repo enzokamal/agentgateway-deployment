@@ -1,0 +1,67 @@
+# Default values for agentgateway-helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+global:
+  # Global namespace
+  namespace: agentgateway-system
+
+  # Global image settings
+  imageRegistry: ""
+  imagePullPolicy: Always
+
+  # Environment settings
+  environment: development  # development, staging, production
+
+  # Common labels
+  labels:
+    app.kubernetes.io/managed-by: helm
+    app.kubernetes.io/part-of: agentgateway
+
+# Subchart overrides
+bmg-agent:
+  image:
+    repository: sawnjordan/multi-agent
+    tag: v0.8
+  secrets:
+    DEEPSEEK_API_KEY: ""
+
+bmg-ui:
+  image:
+    repository: kamalberrybytes/bmg-web-ui
+    tag: v5
+  env:
+    AZURE_CLIENT_ID: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
+    AZURE_TENANT_ID: "6ba231bb-ad9e-41b9-b23d-674c80196bbd"
+    GATEWAY_URL: "http://agentgateway-proxy.{{ .Values.global.namespace }}.svc.cluster.local:8080"
+    AZURE_CLIENT_SECRET: ""
+    REDIRECT_URI: "http://localhost:5000/auth/callback"
+    BMG_API: "http://bmg-agent-service.{{ .Values.global.namespace }}.svc.cluster.local:8070"
+    SECRET_KEY: "helloworld"
+    AZURE_SCOPES: "openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"
+
+mcp-hubspot:
+  image:
+    repository: kamalberrybytes/mcp-hubspot
+    tag: latest
+
+mcp-mssql:
+  image:
+    repository: kamalberrybytes/mcp-mssql
+    tag: latest
+
+mcpagentcontrolplane:
+  gateway:
+    name: agentgateway-proxy
+    className: agentgateway
+    port: 8080
+    protocol: HTTP
+  policy:
+    name: azure-mcp-authn-policy
+    issuer: https://sts.windows.net/6ba231bb-ad9e-41b9-b23d-674c80196bbd/
+    audiences:
+      - api://11ddc0cd-e6fc-48b6-8832-de61800fb41e
+    jwksPath: /6ba231bb-ad9e-41b9-b23d-674c80196bbd/discovery/keys
+  service:
+    name: azure-ad-jwks
+    externalName: login.microsoftonline.com
