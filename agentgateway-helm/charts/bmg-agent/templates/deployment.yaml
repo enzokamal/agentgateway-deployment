@@ -24,7 +24,7 @@ spec:
             - containerPort: {{ .Values.ports.containerPort8070 }}
           envFrom:
           - configMapRef:
-              name: bmg-agent-config
+              name: agentgateway-dev-bmg-agent-config
           - secretRef:
               name: bmg-agent-secrets
       restartPolicy: Always

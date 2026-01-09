@@ -26,5 +26,7 @@ config:
 secrets:
   DEEPSEEK_API_KEY: ""
 
+
+namespace: agentgateway-system
 # Global values will be merged from parent chart
 global: {}
