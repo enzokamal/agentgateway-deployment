@@ -28,7 +28,7 @@ bmg-agent:
 
 bmg-ui:
   image:
-    repository: kamalberrybytes/bmg-web-ui
+    repository: kamalberrybytes/adk-web-ui
     tag: v5
   env:
     AZURE_CLIENT_ID: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
@@ -47,8 +47,8 @@ mcp-hubspot:
 
 mcp-mssql:
   image:
-    repository: kamalberrybytes/mcp-mssql
-    tag: latest
+    repository: kamalberrybytes/mssql-mcp
+    tag: v1
 
 mcpagentcontrolplane:
   gateway:
