@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bmg-ui
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bmg-ui
+  template:
+    metadata:
+      labels:
+        app: bmg-ui
+    spec:
+      containers:
+      - name: bmg-ui
+        image: kamalberrybytes/adk-web-ui:v5
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 5000
+        env:
+        - name: AZURE_CLIENT_ID
+          value: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
+        - name: AZURE_TENANT_ID
+          value: "6ba231bb-ad9e-41b9-b23d-674c80196bbd"
+        - name: GATEWAY_URL
+          value: "http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080"
+        - name: AZURE_CLIENT_SECRET
+          value: ""
+        - name: REDIRECT_URI
+          value: "http://localhost:5000/auth/callback"
+        - name: BMG_API
+          value: "http://bmg-agent-service.agentgateway-system.svc.cluster.local:8070"
+        - name: SECRET_KEY
+          value: "helloworld"
+        - name: AZURE_SCOPES
+          value: "openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bmg-ui-service
+  labels:
+    app: bmg-ui
+spec:
+  selector:
+    app: bmg-ui
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+

@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.bmgAgent.deployment.name }}
+  labels:
+    app: bmg-agent
+spec:
+  replicas: {{ .Values.bmgAgent.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: bmg-agent
+  template:
+    metadata:
+      labels:
+        app: bmg-agent
+    spec:
+      containers:
+        - name: bmg-agent
+          image: "{{ .Values.bmgAgent.deployment.image.repository }}:{{ .Values.bmgAgent.deployment.image.tag }}"
+          imagePullPolicy: {{ .Values.bmgAgent.deployment.image.pullPolicy }}
+          ports:
+{{- range .Values.bmgAgent.deployment.ports }}
+            - containerPort: {{ .containerPort }}
+{{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ .Values.bmgAgent.configMap.name }}
+            - secretRef:
+                name: {{ .Values.bmgAgent.secret.name }}
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.bmgAgent.configMap.name }}
+data:
+  AGENT_MODE: "{{ .Values.bmgAgent.configMap.agentMode }}"
+  AGENT_PORT: "{{ .Values.bmgAgent.configMap.agentPort }}"
+  AGENT_HOST: "{{ .Values.bmgAgent.configMap.agentHost }}"
+  MCP_SERVERS_JSON: "[{\"url\":\"http://{{ .Values.gateway.name }}.{{ .Values.namespace }}.svc.cluster.local:{{ (index .Values.gateway.listeners 0).port }}/mcp/mcp-mssql\"}]"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.bmgAgent.secret.name }}
+type: Opaque
+stringData:
+  DEEPSEEK_API_KEY: "{{ .Values.bmgAgent.secret.deepseekApiKey }}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.bmgAgent.service.name }}
+spec:
+  selector:
+    app: bmg-agent
+  ports:
+    - protocol: TCP
+      port: {{ .Values.bmgAgent.service.port }}
+      targetPort: {{ .Values.bmgAgent.service.targetPort }}
+  type: {{ .Values.bmgAgent.service.type }}

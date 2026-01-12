@@ -40,39 +40,32 @@ The agent gateway provides the core infrastructure for MCP protocol routing and 
 
 **What this script does:**
 - ✅ Checks prerequisites (kubectl, helm, cluster connectivity)
+- ✅ Installs MSSQL server via Helm
 - ✅ Deploys Kubernetes Gateway API CRDs
 - ✅ Deploys kgateway CRDs and control plane with agentgateway enabled
 - ✅ Creates the agentgateway proxy gateway
-- ✅ Deploys an example MCP server for testing
+- ✅ Deploys MCP servers (example, HubSpot, MSSQL)
+- ✅ Deploys cronjob for HubSpot token refresh
 - ✅ Configures Azure AD authentication policy (if credentials provided)
 - ✅ Creates MCP backend and HTTP route configurations
-- ✅ Deploys the MCP UI application
-- ✅ Creates UI HTTP route
+- ✅ Deploys the BMG UI application
+- ✅ Creates UI HTTP route and port-forwarding in screen
 - ✅ Verifies deployment and provides access instructions
 
 **Expected output:** The script will show progress and provide port-forwarding commands upon completion.
 
-### Step 2: Deploy Additional MCP Servers
+### Step 2: Verify MCP Servers
 
-Deploy specific MCP servers based on your needs. Each server has its own directory with Kubernetes manifests.
-
-#### Example MCP Server (Already Deployed)
-The example server is deployed automatically in Step 1. To redeploy or modify:
+The MCP servers are deployed automatically in Step 1. To check or redeploy individually:
 
 ```bash
-kubectl apply -f mcp-server/mcp-example/
-```
+# Check all MCP server deployments
+kubectl get deployments -n agentgateway-system -l app.kubernetes.io/name=mcp
 
-#### HubSpot MCP Server
-
-```bash
-kubectl apply -f mcp-server/mcp-hubspot/
-```
-
-#### MSSQL MCP Server
-
-```bash
-kubectl apply -f mcp-server/mcp-mssql/
+# Redeploy specific server
+kubectl apply -f mcp-server/mcp-example/ -n agentgateway-system
+kubectl apply -f mcp-server/mcp-hubspot/ -n agentgateway-system
+kubectl apply -f mcp-server/mcp-mssql/ -n agentgateway-system
 ```
 
 **Each MCP server deployment includes:**
@@ -82,24 +75,11 @@ kubectl apply -f mcp-server/mcp-mssql/
 - AgentgatewayBackend configuration for routing
 - HTTPRoute for path-based routing (e.g., `/mcp/mcp-hubspot`)
 
-### Step 3: Deploy or Update MCP UI
+### Step 3: Access the UI
 
-If the UI was not deployed in Step 1, or to update it separately:
+The BMG UI is deployed automatically in Step 1. Access it at `http://localhost:5000` after the script completes.
 
-```bash
-# Option 1: Full automated deployment
-export AZURE_CLIENT_SECRET=your-client-secret-here
-./deploy-mcp-ui.sh --all
-
-# Option 2: Step-by-step deployment
-./deploy-mcp-ui.sh --build
-./deploy-mcp-ui.sh --push
-./deploy-mcp-ui.sh --deploy
-
-# Option 3: Deploy only (if image exists)
-export MCP_UI_IMAGE=your-existing-image:latest
-./deploy-mcp-ui.sh --deploy
-```
+The script sets up automatic port-forwarding in a screen session named `mcp-ui-forward`.
 
 ## ⚙️ Configuration
 
@@ -109,10 +89,8 @@ export MCP_UI_IMAGE=your-existing-image:latest
 |----------|-------------|---------|----------|
 | `AZURE_TENANT_ID` | Azure AD tenant ID | - | Optional |
 | `AZURE_CLIENT_ID` | Azure AD application client ID | - | Optional |
-| `AZURE_CLIENT_SECRET` | Azure AD application client secret | - | For UI deployment |
-| `MCP_UI_IMAGE` | Docker image for MCP UI | `kamalberrybytes/mcp-ui:latest` | No |
-| `NAMESPACE` | Kubernetes namespace | `default` | No |
-| `KGATEWAY_VERSION` | kgateway version | `v2.2.0-main` | No |
+| `AGENTGATEWAY_CRDS_VERSION` | Agentgateway CRDs version | `v2.2.0-beta.4` | No |
+| `GATEWAY_API_VERSION` | Gateway API version | `v1.4.0` | No |
 
 ### Azure AD Authentication Setup
 
@@ -141,21 +119,23 @@ export MCP_UI_IMAGE=your-existing-image:latest
 
 ### Port Forwarding
 
-```bash
-# Port forward the agent gateway (exposes all services)
-kubectl port-forward svc/agentgateway 8080:8080 --address 0.0.0.0
+The deployment script automatically sets up port-forwarding in a detached screen session.
 
-# Port forward the UI service directly (alternative)
-kubectl port-forward svc/mcp-ui-service 3000:3000
+```bash
+# Manual port-forward (if needed)
+kubectl port-forward svc/bmg-ui-service 5000:5000 -n agentgateway-system
+
+# Attach to the screen session
+screen -r mcp-ui-forward
 ```
 
 ### Access URLs
 
-- **MCP UI Application**: `http://localhost:8080/ui`
-- **MCP Servers**: `http://localhost:8080/mcp/{server-name}`
-  - Example: `http://localhost:8080/mcp/mcp-example`
-  - HubSpot: `http://localhost:8080/mcp/mcp-hubspot`
-  - MSSQL: `http://localhost:8080/mcp/mcp-mssql`
+- **BMG UI Application**: `http://localhost:5000`
+- **MCP Servers**: Access via the UI or direct API calls
+  - Example: `http://localhost:5000` (through UI)
+  - HubSpot: Integrated in UI
+  - MSSQL: Integrated in UI
 
 ### Authentication
 
@@ -194,16 +174,16 @@ kubectl get endpoints mcp-example-service
 #### UI Deployment Issues
 ```bash
 # Check UI deployment
-kubectl get deployment mcp-ui
+kubectl get deployment bmg-ui -n agentgateway-system
 
 # Check UI pod logs
-kubectl logs -l app=mcp-ui
+kubectl logs -l app=bmg-ui -n agentgateway-system
 
 # Check UI service
-kubectl get service mcp-ui-service
+kubectl get service bmg-ui-service -n agentgateway-system
 
 # Check HTTP route
-kubectl get httproute mcp-ui
+kubectl get httproute bmg-ui -n agentgateway-system
 ```
 
 #### Build Issues
@@ -222,55 +202,60 @@ cd mcp-ui-app && npm install && docker build -t test-ui .
 
 ```bash
 # Check all deployments
-kubectl get deployments
+kubectl get deployments -n agentgateway-system
 
 # Check all services
-kubectl get services
+kubectl get services -n agentgateway-system
 
 # Check HTTP routes
-kubectl get httproute
+kubectl get httproute -n agentgateway-system
 
 # Check agentgateway backends
-kubectl get agentgatewaybackend
+kubectl get agentgatewaybackend -n agentgateway-system
 
 # Check authentication policies
-kubectl get agentgatewaypolicy
+kubectl get agentgatewaypolicy -n agentgateway-system
+
+# Check cronjob
+kubectl get cronjob -n agentgateway-system
 ```
 
 ## 🔄 Updates and Maintenance
 
-### Updating MCP UI
+### Updating BMG UI
+
+The BMG UI is deployed automatically by the main script. To update:
 
 ```bash
-# Rebuild and redeploy
-./deploy-mcp-ui.sh --all
+# Redeploy with the script
+./deploy-agentgateway.sh
 
-# Update only the image
-kubectl set image deployment/mcp-ui mcp-ui=new-image:tag
-kubectl rollout restart deployment/mcp-ui
+# Or update manually
+kubectl set image deployment/bmg-ui bmg-ui=new-image:tag -n agentgateway-system
+kubectl rollout restart deployment/bmg-ui -n agentgateway-system
 ```
 
 ### Scaling Components
 
 ```bash
-# Scale MCP UI
-kubectl scale deployment mcp-ui --replicas=3
+# Scale BMG UI
+kubectl scale deployment bmg-ui --replicas=3 -n agentgateway-system
 
 # Scale MCP servers
-kubectl scale deployment mcp-example --replicas=2
+kubectl scale deployment mcp-example --replicas=2 -n agentgateway-system
 ```
 
 ### Monitoring
 
 ```bash
 # Check pod resource usage
-kubectl top pods
+kubectl top pods -n agentgateway-system
 
 # Check node resources
 kubectl top nodes
 
 # View logs with follow
-kubectl logs -f -l app=mcp-ui
+kubectl logs -f -l app=bmg-ui -n agentgateway-system
 ```
 
 ## 🧹 Cleanup
@@ -278,22 +263,24 @@ kubectl logs -f -l app=mcp-ui
 To remove all deployments:
 
 ```bash
-# Remove MCP UI
-kubectl delete httproute mcp-ui
-kubectl delete service mcp-ui-service
-kubectl delete deployment mcp-ui
-kubectl delete serviceaccount mcp-ui-sa
-kubectl delete secret mcp-ui-secret
+# Remove BMG UI
+kubectl delete httproute bmg-ui -n agentgateway-system
+kubectl delete service bmg-ui-service -n agentgateway-system
+kubectl delete deployment bmg-ui -n agentgateway-system
+kubectl delete serviceaccount bmg-ui-sa -n agentgateway-system
 
 # Remove MCP servers
-kubectl delete -f mcp-server/mcp-example/
-kubectl delete -f mcp-server/mcp-hubspot/
-kubectl delete -f mcp-server/mcp-mssql/
+kubectl delete -f mcp-server/mcp-example/ -n agentgateway-system
+kubectl delete -f mcp-server/mcp-hubspot/ -n agentgateway-system
+kubectl delete -f mcp-server/mcp-mssql/ -n agentgateway-system
+
+# Remove cronjob
+kubectl delete -f cronjob/cronjob-deployment.yml -n agentgateway-system
 
 # Remove agent gateway components
-kubectl delete gateway agentgateway
-kubectl delete agentgatewaypolicy azure-mcp-authn-policy
-kubectl delete agentgatewaybackend mcp-example-backend
+kubectl delete gateway agentgateway -n agentgateway-system
+kubectl delete agentgatewaypolicy azure-mcp-authn-policy -n agentgateway-system
+kubectl delete agentgatewaybackend mcp-example-backend -n agentgateway-system
 # Delete other backends as needed
 
 # Remove kgateway control plane
@@ -308,7 +295,8 @@ kubectl delete crd httproutes.gateway.networking.k8s.io
 
 - ✅ **Agent Gateway**: Full MCP protocol routing infrastructure
 - ✅ **Multiple MCP Servers**: Support for example, HubSpot, and MSSQL servers
-- ✅ **Web UI**: Modern chat interface for MCP server interaction
+- ✅ **BMG Web UI**: Modern chat interface for MCP server interaction
+- ✅ **CronJob for Token Refresh**: Automated HubSpot token renewal
 - ✅ **Authentication**: Azure AD integration with workload identity
 - ✅ **Scalability**: Kubernetes-native horizontal pod scaling
 - ✅ **Monitoring**: Health checks, logging, and resource monitoring

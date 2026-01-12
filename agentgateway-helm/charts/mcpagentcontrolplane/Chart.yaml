@@ -1,0 +1,6 @@
+apiVersion: v2
+name: mcpagentcontrolplane
+description: A Helm chart for MCP Agent Control Plane
+type: application
+version: 0.1.0
+appVersion: "1.0"

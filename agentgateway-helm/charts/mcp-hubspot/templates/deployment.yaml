@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-hubspot
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    matchLabels:
+      app: mcp-hubspot
+  template:
+    metadata:
+      labels:
+        app: mcp-hubspot
+    spec:
+      containers:
+      - name: mcp-hubspot
+        image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+        imagePullPolicy: {{ .Values.image.pullPolicy }}

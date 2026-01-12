@@ -1,7 +1,8 @@
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
-  name: mcp-hubspot
+  name: mcp-mssql
+  namespace: {{ .Values.namespace }}
 spec:
   parentRefs:
   - name: agentgateway-proxy
@@ -9,9 +10,8 @@ spec:
    - matches:
        - path:
            type: PathPrefix
-           value: /mcp/mcp-hubspot
+           value: {{ .Values.httpRoute.path }}
      backendRefs:
-       - name: mcp-hubspot-backend
+       - name: {{ .Values.backend.name }}
          group: agentgateway.dev
          kind: AgentgatewayBackend
-

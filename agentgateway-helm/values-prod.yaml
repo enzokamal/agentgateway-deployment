@@ -1,0 +1,24 @@
+global:
+  namespace: agentgateway-prod
+  environment: production
+  imagePullPolicy: Always
+
+bmg-agent:
+  image:
+    tag: v1.0  # Production version
+  secrets:
+    DEEPSEEK_API_KEY: ""  # Set via secret management
+
+bmg-ui:
+  image:
+    tag: v1.0
+  env:
+    REDIRECT_URI: "https://your-prod-domain.com/auth/callback"
+
+mcp-hubspot:
+  image:
+    tag: v1.0
+
+mcp-mssql:
+  image:
+    tag: v1.0

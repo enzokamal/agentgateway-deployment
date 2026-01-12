@@ -1,0 +1,21 @@
+dependencies:
+- name: agentgateway
+  repository: oci://cr.agentgateway.dev/charts
+  version: v2.2.0-beta.4
+- name: bmg-agent
+  repository: file://./charts/bmg-agent
+  version: 0.1.0
+- name: bmg-ui
+  repository: file://./charts/bmg-ui
+  version: 0.1.0
+- name: mcp-hubspot
+  repository: file://./charts/mcp-hubspot
+  version: 0.1.0
+- name: mcp-mssql
+  repository: file://./charts/mcp-mssql
+  version: 0.1.0
+- name: mcpagentcontrolplane
+  repository: file://./charts/mcpagentcontrolplane
+  version: 0.1.0
+digest: sha256:6e06b9379053669c009c275ad74489e0058e2e77061ad2f398a78536a93a4442
+generated: "2026-01-12T13:20:33.856423662+05:45"

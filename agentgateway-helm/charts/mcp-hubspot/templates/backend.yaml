@@ -1,0 +1,13 @@
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayBackend
+metadata:
+  name: {{ .Values.backend.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  mcp:
+    targets:
+    - name: {{ .Values.backend.targetName }}
+      static:
+        host: {{ .Values.backend.host }}
+        port: {{ .Values.backend.port }}
+        protocol: {{ .Values.backend.protocol }}
