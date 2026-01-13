@@ -193,7 +193,7 @@ Default values with fallbacks
 
 
 {{- define "bmg-agent-gateway.bmgUi.adkApi" -}}
-{{- default (printf "http://%s.%s.svc.cluster.local:%d" .Values.bmgAgent.service.name (include "bmg-agent-gateway.namespace" .) (int .Values.bmgAgent.service.port)) .Values.bmgUi.deployment.env.bmgApi }}
+{{- default (printf "http://%s.%s.svc.cluster.local:%d" .Values.bmgAgent.service.name (include "bmg-agent-gateway.namespace" .) (int .Values.bmgAgent.service.port)) .Values.bmgUi.deployment.env.adkApi }}
 {{- end }}
 
 

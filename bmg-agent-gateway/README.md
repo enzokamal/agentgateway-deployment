@@ -198,7 +198,313 @@ helm install my-release ./bmg-agent-gateway --namespace agentgateway-system \
   --set bmgAgent.secret.deepseekApiKey="your-api-key"
 ```
 
+## Packaging the Chart
 
+Before distributing or deploying the chart, you should package it into a `.tgz` archive.
+
+### Package the Chart
+```bash
+# From the chart directory
+helm package .
+
+# Or from parent directory
+helm package ./bmg-agent-gateway
+```
+
+This creates a file like `bmg-agent-gateway-1.0.0.tgz`.
+
+### Package with Dependencies
+If your chart has dependencies defined in `Chart.yaml`:
+```bash
+# Update dependencies
+helm dependency update ./bmg-agent-gateway
+
+# Package with dependencies
+helm package ./bmg-agent-gateway
+```
+
+### Store in Repository
+```bash
+# Upload to chart repository
+curl -u username:password -X POST --data-binary @bmg-agent-gateway-1.0.0.tgz https://your-chart-repo.com/api/charts
+
+# Or use helm push if using OCI registry
+helm push bmg-agent-gateway-1.0.0.tgz oci://your-registry.com/charts
+```
+
+## Validating the Chart
+
+Before installing, validate your chart for syntax errors and best practices.
+
+### Lint the Chart
+```bash
+# Basic linting
+helm lint ./bmg-agent-gateway
+
+# With custom values
+helm lint ./bmg-agent-gateway -f my-values.yaml
+```
+
+### Template Validation
+```bash
+# Render templates to check for syntax errors
+helm template my-release ./bmg-agent-gateway
+
+# With custom values
+helm template my-release ./bmg-agent-gateway -f my-values.yaml
+
+# Debug mode for detailed output
+helm template my-release ./bmg-agent-gateway --debug
+```
+
+### Dry Run Installation
+```bash
+# Dry run to validate against cluster
+helm install my-release ./bmg-agent-gateway --dry-run
+
+# Dry run with custom values
+helm install my-release ./bmg-agent-gateway --dry-run -f my-values.yaml
+
+# Dry run with debug output
+helm install my-release ./bmg-agent-gateway --dry-run --debug
+```
+
+### Check Chart Metadata
+```bash
+# Validate Chart.yaml
+helm show chart ./bmg-agent-gateway
+
+# Check dependencies
+helm dependency list ./bmg-agent-gateway
+```
+
+### Use Chart Testing Tools
+```bash
+# Install chart-testing
+# https://github.com/helm/chart-testing
+
+# Run tests
+ct lint ./bmg-agent-gateway
+
+# Test installation
+ct install ./bmg-agent-gateway
+```
+
+## Upgrading the Chart
+
+### Upgrade an Existing Release
+```bash
+# Upgrade with new chart version
+helm upgrade my-release ./bmg-agent-gateway
+
+# Upgrade with new values
+helm upgrade my-release ./bmg-agent-gateway -f updated-values.yaml
+
+# Upgrade specific values
+helm upgrade my-release ./bmg-agent-gateway \
+  --set bmgAgent.deployment.image.tag="v0.9" \
+  --set bmgUi.deployment.image.tag="v6"
+```
+
+### Upgrade with Namespace Change
+If changing the namespace, you need to reinstall:
+```bash
+# Uninstall from old namespace
+helm uninstall my-release -n old-namespace
+
+# Install in new namespace
+helm install my-release ./bmg-agent-gateway -n new-namespace --set namespace=new-namespace
+```
+
+### Rollback an Upgrade
+```bash
+# Rollback to previous revision
+helm rollback my-release
+
+# Rollback to specific revision
+helm rollback my-release 2
+
+# List revision history
+helm history my-release
+```
+
+### Upgrade Best Practices
+- Always backup important data before upgrading
+- Test upgrades in a staging environment first
+- Review changelog for breaking changes
+- Update values.yaml with new required parameters
+- Monitor application after upgrade
+
+### Handling Upgrade Issues
+```bash
+# Check upgrade status
+helm status my-release
+
+# View upgrade history
+helm history my-release
+
+# Force upgrade if needed
+helm upgrade my-release ./bmg-agent-gateway --force
+
+# Recreate resources if needed
+helm upgrade my-release ./bmg-agent-gateway --recreate-pods
+```
+
+## Other Important Instructions
+
+### Chart Maintenance
+
+#### Update Dependencies
+```bash
+# Update chart dependencies
+helm dependency update ./bmg-agent-gateway
+
+# List current dependencies
+helm dependency list ./bmg-agent-gateway
+```
+
+#### Version Management
+```bash
+# Check current version
+helm show chart ./bmg-agent-gateway | grep version
+
+# Update Chart.yaml version for new releases
+# Edit Chart.yaml and increment version
+```
+
+#### Repository Management
+```bash
+# Add chart repository
+helm repo add my-repo https://my-chart-repo.com
+
+# Update repositories
+helm repo update
+
+# Search for charts
+helm search repo bmg-agent-gateway
+
+# Install from repository
+helm install my-release my-repo/bmg-agent-gateway
+```
+
+### Backup and Recovery
+
+#### Backup Important Data
+```bash
+# Export current values
+helm get values my-release > backup-values.yaml
+
+# Backup secrets (be careful with sensitive data)
+kubectl get secret -n agentgateway-system -o yaml > secrets-backup.yaml
+```
+
+#### Disaster Recovery
+```bash
+# Restore from backup
+helm install my-release ./bmg-agent-gateway -f backup-values.yaml
+
+# Restore secrets
+kubectl apply -f secrets-backup.yaml
+```
+
+### Monitoring and Observability
+
+#### Health Checks
+```bash
+# Check pod health
+kubectl get pods -n agentgateway-system
+
+# Check service endpoints
+kubectl get endpoints -n agentgateway-system
+
+# Test Gateway health
+curl http://localhost:8080/health  # If health endpoint exists
+```
+
+#### Resource Monitoring
+```bash
+# Monitor resource usage
+kubectl top pods -n agentgateway-system
+
+# Check events
+kubectl get events -n agentgateway-system --sort-by=.metadata.creationTimestamp
+```
+
+#### Logging
+```bash
+# View logs for all components
+kubectl logs -n agentgateway-system -l app.kubernetes.io/instance=my-release
+
+# Follow logs in real-time
+kubectl logs -n agentgateway-system deployment/bmg-agent -f
+```
+
+### Security Best Practices
+
+#### Secrets Management
+- Never commit secrets to version control
+- Use Kubernetes secrets or external secret management
+- Rotate secrets regularly
+- Limit secret access with RBAC
+
+#### Network Security
+```bash
+# Create network policies for production
+kubectl apply -f network-policies.yaml
+
+# Example: Deny all ingress by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-all
+  namespace: agentgateway-system
+spec:
+  podSelector: {}
+  policyTypes:
+  - Ingress
+```
+
+#### RBAC Configuration
+```bash
+# Create service account with minimal permissions
+kubectl create serviceaccount bmg-service-account -n agentgateway-system
+
+# Bind to role with necessary permissions
+kubectl create rolebinding bmg-role-binding \
+  --role=bmg-role \
+  --serviceaccount=agentgateway-system:bmg-service-account \
+  -n agentgateway-system
+```
+
+### Performance Tuning
+
+#### Resource Optimization
+```yaml
+# In values.yaml, set appropriate resource limits
+bmgAgent:
+  deployment:
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+```
+
+#### Scaling
+```bash
+# Scale deployments
+kubectl scale deployment bmg-agent --replicas=3 -n agentgateway-system
+
+# Horizontal Pod Autoscaling
+kubectl autoscale deployment bmg-agent --cpu-percent=70 --min=1 --max=5 -n agentgateway-system
+```
+
+#### Database Optimization
+- Use connection pooling for MCP MSSQL
+- Configure appropriate timeouts
+- Monitor query performance
 
 ## Uninstalling the Chart
 

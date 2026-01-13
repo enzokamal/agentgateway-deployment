@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.bmgAgent.deployment.name }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "bmg-agent.labels" . | nindent 4 }}
 spec:
@@ -33,16 +34,18 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: {{ include "bmg-agent-gateway.bmgAgent.configMap.name" . }}
+  namespace: {{ .Values.namespace }}
 data:
   AGENT_MODE: {{ include "bmg-agent-gateway.bmgAgent.agentMode" . | quote }}
   AGENT_PORT: {{ include "bmg-agent-gateway.bmgAgent.agentPort" . | quote }}
   AGENT_HOST: {{ include "bmg-agent-gateway.bmgAgent.agentHost" . | quote }}
-  MCP_SERVERS_JSON: {{ include "bmg-agent-gateway.bmgAgent.mcpServersJson" . | quote }}
+  MCP_SERVERS_JSON: {{ tpl (include "bmg-agent-gateway.bmgAgent.mcpServersJson" .) . | quote }}
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: {{ include "bmg-agent-gateway.bmgAgent.secret.name" . }}
+  namespace: {{ .Values.namespace }}
 type: Opaque
 stringData:
   DEEPSEEK_API_KEY: {{ include "bmg-agent-gateway.bmgAgent.deepseekApiKey" . }}
@@ -51,6 +54,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.bmgAgent.service.name }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "bmg-agent.labels" . | nindent 4 }}
 spec:

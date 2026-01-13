@@ -3,7 +3,7 @@
 # Declare variables to be passed into your templates.
 
 # Namespace for deployment (defaults to default)
-namespace: "default"
+namespace: ""
 
 # Azure Configuration (shared) - REQUIRED
 azure:
@@ -17,7 +17,7 @@ bmgAgent:
     agentMode: "api"  
     agentPort: "8070" 
     agentHost: "0.0.0.0"  
-    mcpServersJson: '[{"url":"http://agentgateway-proxy.default.svc.cluster.local:8080/mcp/mcp-mssql"}]' 
+    mcpServersJson: '[{"url":"http://agentgateway-proxy.{{ .Values.namespace }}.svc.cluster.local:8080/mcp/mcp-mssql"}]'
   deployment:
     name: "bmg-agent-deployment"
     replicas: 1
@@ -50,8 +50,8 @@ bmgUi:
     env:
       redirectUri: "http://localhost:5000/auth/callback"  # REQUIRED: OAuth Redirect URI
       azureScopes: "openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"  # REQUIRED: Azure Scopes
-      gatewayUrl: "http://agentgateway-proxy.default.svc.cluster.local:8080"
-      adkApi: "http://bmg-agent-service.default.svc.cluster.local:8070"
+      gatewayUrl: "http://agentgateway-proxy.{{ .Values.namespace }}.svc.cluster.local:8080"
+      adkApi: "http://bmg-agent-service.{{ .Values.namespace }}.svc.cluster.local:8070"
   secret:
     name: "bmg-ui-secrets"
     azureClientSecret: ""  # REQUIRED: Azure Client Secret
@@ -68,7 +68,7 @@ mcpHubspot:
   backend:
     name: "mcp-hubspot-backend"
     targetName: "mcp-hubspot-target"
-    host: "mcp-hubspot-service.default.svc.cluster.local"
+    host: "mcp-hubspot-service.{{ .Values.namespace }}.svc.cluster.local"
     protocol: "StreamableHTTP"
   deployment:
     name: "mcp-hubspot"
@@ -90,7 +90,7 @@ mcpMssql:
   backend:
     name: "mcp-mssql-backend"
     targetName: "mcp-mssql-target"
-    host: "mcp-mssql-service.default.svc.cluster.local"
+    host: "mcp-mssql-service.{{ .Values.namespace }}.svc.cluster.local"
     protocol: "StreamableHTTP"
   deployment:
     name: "mcp-mssql"

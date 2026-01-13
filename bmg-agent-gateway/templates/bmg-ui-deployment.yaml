@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ .Values.bmgUi.deployment.name }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "bmg-ui.labels" . | nindent 4 }}
 spec:
@@ -26,7 +27,7 @@ spec:
             - name: AZURE_TENANT_ID
               value: {{ include "bmg-agent-gateway.azure.tenantId" . }}
             - name: GATEWAY_URL
-              value: {{ include "bmg-agent-gateway.bmgUi.gatewayUrl" . }}
+              value: {{ tpl (include "bmg-agent-gateway.bmgUi.gatewayUrl" .) . }}
             - name: AZURE_CLIENT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -35,7 +36,7 @@ spec:
             - name: REDIRECT_URI
               value: {{ include "bmg-agent-gateway.bmgUi.redirectUri" . }}
             - name: ADK_API
-              value: {{ include "bmg-agent-gateway.bmgUi.adkApi" . }}
+              value: {{ tpl (include "bmg-agent-gateway.bmgUi.adkApi" .) . }}
             - name: SECRET_KEY
               valueFrom:
                 secretKeyRef:
@@ -48,6 +49,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: {{ .Values.bmgUi.service.name }}
+  namespace: {{ .Values.namespace }}
   labels:
     {{- include "bmg-ui.labels" . | nindent 4 }}
 spec:
@@ -63,6 +65,7 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: {{ .Values.bmgUi.httpRoute.name }}
+  namespace: {{ .Values.namespace }}
 spec:
   parentRefs:
     - name: {{ include "bmg-agent-gateway.gateway.name" . }}
@@ -92,7 +95,8 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
- name: {{ include "bmg-agent-gateway.bmgUi.secret.name" . }}
+  name: {{ include "bmg-agent-gateway.bmgUi.secret.name" . }}
+  namespace: {{ .Values.namespace }}
 type: Opaque
 stringData:
  AZURE_CLIENT_SECRET: {{ include "bmg-agent-gateway.bmgUi.azureClientSecret" . }}
