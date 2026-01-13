@@ -161,11 +161,19 @@ Required values - will fail if not provided
 {{- end }}
 
 {{- define "bmg-agent-gateway.bmgUi.azureClientSecret" -}}
-{{- required "bmgUi.deployment.env.azureClientSecret is required in values.yaml" .Values.bmgUi.deployment.env.azureClientSecret }}
+{{- required "bmgUi.secret.azureClientSecret is required in values.yaml" .Values.bmgUi.secret.azureClientSecret }}
 {{- end }}
 
 {{- define "bmg-agent-gateway.bmgUi.secretKey" -}}
-{{- required "bmgUi.deployment.env.secretKey is required in values.yaml" .Values.bmgUi.deployment.env.secretKey }}
+{{- required "bmgUi.secret.secretKey is required in values.yaml" .Values.bmgUi.secret.secretKey }}
+{{- end }}
+
+{{- define "bmg-agent-gateway.bmgUi.secret.name" -}}
+{{- if .Values.bmgUi.secret -}}
+{{- .Values.bmgUi.secret.name | default "bmg-ui-secrets" -}}
+{{- else -}}
+bmg-ui-secrets
+{{- end -}}
 {{- end }}
 
 {{- define "bmg-agent-gateway.bmgUi.azureScopes" -}}

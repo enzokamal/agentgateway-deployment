@@ -2,8 +2,8 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
-# Namespace for deployment (defaults to agentgateway-system)
-namespace: "agentgateway-system"
+# Namespace for deployment (defaults to default)
+namespace: "default"
 
 # Azure Configuration (shared) - REQUIRED
 azure:
@@ -17,7 +17,7 @@ bmgAgent:
     agentMode: "api"  
     agentPort: "8070" 
     agentHost: "0.0.0.0"  
-    mcpServersJson: '[{"url":"http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080/mcp/mcp-mssql"}]' 
+    mcpServersJson: '[{"url":"http://agentgateway-proxy.default.svc.cluster.local:8080/mcp/mcp-mssql"}]' 
   deployment:
     name: "bmg-agent-deployment"
     replicas: 1
@@ -48,12 +48,14 @@ bmgUi:
       pullPolicy: "Always"
     port: 5000
     env:
-      azureClientSecret: ""  # REQUIRED: Azure Client Secret
       redirectUri: "http://localhost:5000/auth/callback"  # REQUIRED: OAuth Redirect URI
-      secretKey: "hello world"  # REQUIRED: Flask Secret Key
       azureScopes: "openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"  # REQUIRED: Azure Scopes
-      gatewayUrl: "http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080"  
-      adkApi: "http://bmg-agent-service.agentgateway-system.svc.cluster.local:8070"  
+      gatewayUrl: "http://agentgateway-proxy.default.svc.cluster.local:8080"
+      adkApi: "http://bmg-agent-service.default.svc.cluster.local:8070"
+  secret:
+    name: "bmg-ui-secrets"
+    azureClientSecret: ""  # REQUIRED: Azure Client Secret
+    secretKey: "hello world"  # REQUIRED: Flask Secret Key
   service:
     name: "bmg-ui-service"
     port: 5000
@@ -66,7 +68,7 @@ mcpHubspot:
   backend:
     name: "mcp-hubspot-backend"
     targetName: "mcp-hubspot-target"
-    host: "mcp-hubspot-service.agentgateway-system.svc.cluster.local"
+    host: "mcp-hubspot-service.default.svc.cluster.local"
     protocol: "StreamableHTTP"
   deployment:
     name: "mcp-hubspot"
@@ -88,7 +90,7 @@ mcpMssql:
   backend:
     name: "mcp-mssql-backend"
     targetName: "mcp-mssql-target"
-    host: "mcp-mssql-service.agentgateway-system.svc.cluster.local"
+    host: "mcp-mssql-service.default.svc.cluster.local"
     protocol: "StreamableHTTP"
   deployment:
     name: "mcp-mssql"

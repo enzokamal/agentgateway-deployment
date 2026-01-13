@@ -28,13 +28,19 @@ spec:
             - name: GATEWAY_URL
               value: {{ include "bmg-agent-gateway.bmgUi.gatewayUrl" . }}
             - name: AZURE_CLIENT_SECRET
-              value: {{ include "bmg-agent-gateway.bmgUi.azureClientSecret" . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bmg-agent-gateway.bmgUi.secret.name" . }}
+                  key: AZURE_CLIENT_SECRET
             - name: REDIRECT_URI
               value: {{ include "bmg-agent-gateway.bmgUi.redirectUri" . }}
             - name: ADK_API
               value: {{ include "bmg-agent-gateway.bmgUi.adkApi" . }}
             - name: SECRET_KEY
-              value: {{ include "bmg-agent-gateway.bmgUi.secretKey" . }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bmg-agent-gateway.bmgUi.secret.name" . }}
+                  key: SECRET_KEY
             - name: AZURE_SCOPES
               value: {{ include "bmg-agent-gateway.bmgUi.azureScopes" . }}
 ---
@@ -82,3 +88,12 @@ spec:
       backendRefs:
         - name: {{ .Values.bmgUi.service.name }}
           port: {{ .Values.bmgUi.service.port }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+ name: {{ include "bmg-agent-gateway.bmgUi.secret.name" . }}
+type: Opaque
+stringData:
+ AZURE_CLIENT_SECRET: {{ include "bmg-agent-gateway.bmgUi.azureClientSecret" . }}
+ SECRET_KEY: {{ include "bmg-agent-gateway.bmgUi.secretKey" . }}
