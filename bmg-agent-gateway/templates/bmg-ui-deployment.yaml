@@ -1,0 +1,84 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.bmgUi.deployment.name }}
+  labels:
+    {{- include "bmg-ui.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.bmgUi.deployment.replicas }}
+  selector:
+    matchLabels:
+      {{- include "bmg-ui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "bmg-ui.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.bmgUi.deployment.name }}
+          image: {{ include "bmg-agent-gateway.bmgUi.image.repository" . }}:{{ include "bmg-agent-gateway.bmgUi.image.tag" . }}
+          imagePullPolicy: {{ include "bmg-agent-gateway.bmgUi.image.pullPolicy" . }}
+          ports:
+            - containerPort: {{ .Values.bmgUi.deployment.port }}
+          env:
+            - name: AZURE_CLIENT_ID
+              value: {{ include "bmg-agent-gateway.azure.clientId" . }}
+            - name: AZURE_TENANT_ID
+              value: {{ include "bmg-agent-gateway.azure.tenantId" . }}
+            - name: GATEWAY_URL
+              value: {{ include "bmg-agent-gateway.bmgUi.gatewayUrl" . }}
+            - name: AZURE_CLIENT_SECRET
+              value: {{ include "bmg-agent-gateway.bmgUi.azureClientSecret" . }}
+            - name: REDIRECT_URI
+              value: {{ include "bmg-agent-gateway.bmgUi.redirectUri" . }}
+            - name: BMG_API
+              value: {{ include "bmg-agent-gateway.bmgUi.bmgApi" . }}
+            - name: SECRET_KEY
+              value: {{ include "bmg-agent-gateway.bmgUi.secretKey" . }}
+            - name: AZURE_SCOPES
+              value: {{ include "bmg-agent-gateway.bmgUi.azureScopes" . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.bmgUi.service.name }}
+  labels:
+    {{- include "bmg-ui.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "bmg-ui.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.bmgUi.service.port }}
+      targetPort: {{ .Values.bmgUi.service.targetPort }}
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.bmgUi.httpRoute.name }}
+spec:
+  parentRefs:
+    - name: {{ include "bmg-agent-gateway.gateway.name" . }}
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ui
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.bmgUi.service.name }}
+          port: {{ .Values.bmgUi.service.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth
+      backendRefs:
+        - name: {{ .Values.bmgUi.service.name }}
+          port: {{ .Values.bmgUi.service.port }}

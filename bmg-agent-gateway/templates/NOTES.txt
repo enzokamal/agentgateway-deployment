@@ -1,0 +1,21 @@
+1. Get the application URL by running these commands:
+
+{{- $listener := index .Values.gateway.listeners 0 }}
+{{- if $listener.hostname }}
+   export GATEWAY_HOST={{ $listener.hostname }}
+   echo "BMG UI: http://$GATEWAY_HOST:{{ $listener.port }}/ui"
+   echo "MCP HubSpot: http://$GATEWAY_HOST:{{ $listener.port }}/mcp/mcp-hubspot"
+   echo "MCP MSSQL: http://$GATEWAY_HOST:{{ $listener.port }}/mcp/mcp-mssql"
+{{- else }}
+   # For local development, use port-forwarding
+   echo "Port forward the Gateway to access the application:"
+   echo "kubectl port-forward -n {{ .Release.Namespace }} svc/{{ .Values.gateway.name }} {{ $listener.port }}:{{ $listener.port }}"
+   echo ""
+   echo "Then visit:"
+   echo "BMG UI: http://localhost:{{ $listener.port }}/ui"
+   echo "MCP HubSpot: http://localhost:{{ $listener.port }}/mcp/mcp-hubspot"
+   echo "MCP MSSQL: http://localhost:{{ $listener.port }}/mcp/mcp-mssql"
+{{- end }}
+echo ""
+echo "NOTE: The Gateway uses Gateway API for routing. All traffic goes through the Gateway on port {{ $listener.port }}."
+echo "Authentication is required for accessing the UI and MCP endpoints."
