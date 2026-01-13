@@ -1,16 +1,7 @@
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mcp-mssql-sa
-  namespace: agentgateway-system
-  annotations:
-    azure.workload.identity/client-id: "11ddc0cd-e6fc-48b6-8832-de61800fb41e"
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mcp-mssql
-  namespace: agentgateway-system
 spec:
   selector:
     matchLabels:
@@ -20,17 +11,27 @@ spec:
       labels:
         app: mcp-mssql
     spec:
-      serviceAccountName: mcp-mssql-sa
       containers:
       - name: mcp-mssql
         image: kamalberrybytes/mssql-mcp:v1
         imagePullPolicy: Always
+        env:
+          - name: MSSQL_SERVER
+            value: "my-mssqlserver-2022"
+          - name: MSSQL_DATABASE
+            value: "msdb"
+          - name: MSSQL_PORT
+            value: "1433"
+          - name: MSSQL_USER
+            value: "sa"
+          - name: MSSQL_PASSWORD
+            value: ""
+      
 ---
 apiVersion: v1   
 kind: Service
 metadata:
   name: mcp-mssql-service
-  namespace: agentgateway-system
   labels:
     app: mcp-mssql
 spec:

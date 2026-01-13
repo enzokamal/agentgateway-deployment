@@ -1,0 +1,57 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: {{ include "bmg-agent-gateway.gateway.name" . }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  gatewayClassName: {{ include "bmg-agent-gateway.gateway.gatewayClassName" . }}
+  listeners:
+{{- range .Values.gateway.listeners }}
+    - protocol: {{ .protocol }}
+      port: {{ .port }}
+      name: {{ .name }}
+      allowedRoutes:
+        namespaces:
+          from: {{ .allowedRoutes.namespaces.from }}
+{{- end }}
+---
+apiVersion: agentgateway.dev/v1alpha1
+kind: AgentgatewayPolicy
+metadata:
+  name: {{ .Values.policy.name }}
+spec:
+  targetRefs:
+{{- range .Values.policy.targetRefs }}
+    - group: {{ .group }}
+      kind: {{ .kind }}
+      name: {{ include "bmg-agent-gateway.gateway.name" $ }}
+{{- end }}
+  traffic:
+    jwtAuthentication:
+      mode: {{ .Values.policy.jwtAuthentication.mode }}
+      providers:
+{{- range .Values.policy.jwtAuthentication.providers }}
+        - issuer: https://sts.windows.net/{{ $.Values.azure.tenantId }}/
+          audiences:
+            - api://{{ $.Values.azure.clientId }}
+          jwks:
+            remote:
+              cacheDuration: {{ .cacheDuration }}
+              backendRef:
+                group: {{ .backendRef.group }}
+                kind: {{ .backendRef.kind }}
+                name: {{ .backendRef.name }}
+                port: {{ .backendRef.port }}
+              jwksPath: /{{ $.Values.azure.tenantId }}/discovery/keys
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.policy.jwksService.name }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  type: ExternalName
+  externalName: {{ .Values.policy.jwksService.externalName }}

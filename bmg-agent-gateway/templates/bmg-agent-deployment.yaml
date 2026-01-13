@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.bmgAgent.deployment.name }}
+  labels:
+    {{- include "bmg-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.bmgAgent.deployment.replicas }}
+  selector:
+    matchLabels:
+      {{- include "bmg-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "bmg-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.bmgAgent.deployment.name }}
+          image: {{ include "bmg-agent-gateway.bmgAgent.image.repository" . }}:{{ include "bmg-agent-gateway.bmgAgent.image.tag" . }}
+          imagePullPolicy: {{ include "bmg-agent-gateway.bmgAgent.image.pullPolicy" . }}
+          ports:
+{{- range .Values.bmgAgent.deployment.ports }}
+            - containerPort: {{ .containerPort }}
+{{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "bmg-agent-gateway.bmgAgent.configMap.name" . }}
+            - secretRef:
+                name: {{ include "bmg-agent-gateway.bmgAgent.secret.name" . }}
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bmg-agent-gateway.bmgAgent.configMap.name" . }}
+data:
+  AGENT_MODE: {{ include "bmg-agent-gateway.bmgAgent.agentMode" . | quote }}
+  AGENT_PORT: {{ include "bmg-agent-gateway.bmgAgent.agentPort" . | quote }}
+  AGENT_HOST: {{ include "bmg-agent-gateway.bmgAgent.agentHost" . | quote }}
+  MCP_SERVERS_JSON: {{ include "bmg-agent-gateway.bmgAgent.mcpServersJson" . | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "bmg-agent-gateway.bmgAgent.secret.name" . }}
+type: Opaque
+stringData:
+  DEEPSEEK_API_KEY: {{ include "bmg-agent-gateway.bmgAgent.deepseekApiKey" . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.bmgAgent.service.name }}
+  labels:
+    {{- include "bmg-agent.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "bmg-agent.selectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.bmgAgent.service.port }}
+      targetPort: {{ .Values.bmgAgent.service.targetPort }}
+  type: {{ .Values.bmgAgent.service.type }}

@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bmg-agent-config
+data:
+  AGENT_MODE: "api"
+  AGENT_PORT: "8070"
+  AGENT_HOST: "0.0.0.0"
+  MCP_SERVERS_JSON: '[{"url":"http://agentgateway-proxy.agentgateway-system.svc.cluster.local:8080/mcp/mcp-mssql"}]'
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bmg-agent-deployment
+  labels:
+    app: bmg-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bmg-agent
+  template:
+    metadata:
+      labels:
+        app: bmg-agent
+    spec:
+      containers:
+        - name: bmg-agent
+          image: sawnjordan/multi-agent:v0.8
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+            - containerPort: 8070
+          envFrom:
+          - configMapRef:
+              name: bmg-agent-config
+          - secretRef:
+              name: bmg-agent-secrets
+      restartPolicy: Always
+
+---
+# --------------------------
+# Service (ClusterIP)
+# --------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: bmg-agent-service
+spec:
+  selector:
+    app: bmg-agent
+  ports:
+    - protocol: TCP
+      port: 8070
+      targetPort: 8070
+  type: ClusterIP
