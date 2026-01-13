@@ -2,7 +2,6 @@ apiVersion: agentgateway.dev/v1alpha1
 kind: AgentgatewayBackend
 metadata:
   name: mcp-mssql-backend
-  namespace: agentgateway-system
 spec:
   mcp:
     targets:
