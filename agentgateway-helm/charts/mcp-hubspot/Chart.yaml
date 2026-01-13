@@ -1,6 +1,0 @@
-apiVersion: v2
-name: mcp-hubspot
-description: A Helm chart for MCP HubSpot
-type: application
-version: 0.1.0
-appVersion: "1.0"
