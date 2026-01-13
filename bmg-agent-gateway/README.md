@@ -1,6 +1,6 @@
-# BMG Agent Gateway Helm Chart
+# Agent Gateway Helm Chart
 
-This Helm chart deploys the BMG Agent Gateway system, which includes the BMG Agent, BMG UI, MCP HubSpot, MCP MSSQL servers, and the associated Gateway and authentication policies.
+This Helm chart deploys the Agent Gateway system, which includes the Agent, UI, MCP HubSpot, MCP MSSQL servers, and the associated Gateway and authentication policies.
 
 ## Helm Chart Overview for Beginners
 
@@ -37,8 +37,8 @@ bmgAgentgateway/
 ### Component Overview
 This chart deploys a multi-component system for agent-based interactions with external services:
 
-1. **BMG Agent**: Core orchestration service that manages MCP server connections
-2. **BMG UI**: Web interface for user interaction with the agent system
+1. **Agent**: Core orchestration service that manages MCP server connections
+2. **UI**: Web interface for user interaction with the agent system
 3. **MCP HubSpot**: MCP server providing HubSpot CRM integration
 4. **MCP MSSQL**: MCP server providing Microsoft SQL Server database access
 5. **Gateway**: Routes traffic between components and enforces authentication
@@ -46,15 +46,15 @@ This chart deploys a multi-component system for agent-based interactions with ex
 
 ### Data Flow
 ```
-User Request → Gateway (Auth) → BMG UI → BMG Agent → MCP Servers (HubSpot/MSSQL)
+User Request → Gateway (Auth) → UI → Agent → MCP Servers (HubSpot/MSSQL)
                                       ↓
 External Services ←─────────────────────┘
 ```
 
 ### Component Interactions
 - **Gateway** receives external requests and routes them based on paths
-- **BMG UI** provides the user interface, authenticates via Azure AD
-- **BMG Agent** orchestrates requests to appropriate MCP servers
+- **UI** provides the user interface, authenticates via Azure AD
+- **Agent** orchestrates requests to appropriate MCP servers
 - **MCP Servers** handle specific integrations (HubSpot API, MSSQL database)
 - **Policy** ensures only authenticated requests reach protected endpoints
 
@@ -67,7 +67,7 @@ External Services ←───────────────────�
 
 ## Prerequisites
 
-Before installing the BMG Agent Gateway Helm chart, ensure your Kubernetes cluster meets the following requirements:
+Before installing the Agent Gateway Helm chart, ensure your Kubernetes cluster meets the following requirements:
 
 ### Kubernetes Version
 - Kubernetes 1.19 or higher
@@ -570,45 +570,45 @@ Required for authentication. Get these values from your Azure AD app registratio
 | `azure.clientId` | Application (client) ID from Azure AD app registration | `"11ddc0cd-e6fc-48b6-8832-de61800fb41e"` |
 | `azure.tenantId` | Directory (tenant) ID from Azure AD | `"6ba231bb-ad9e-41b9-b23d-674c80196bbd"` |
 
-### BMG Agent Configuration
+### Agent Configuration
 Core agent settings. The agent orchestrates requests between UI and MCP servers:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `bmgAgent.configMap.agentMode` | Operating mode (api, etc.) | `"api"` |
-| `bmgAgent.configMap.agentPort` | Port the agent listens on | `"8070"` |
-| `bmgAgent.configMap.agentHost` | Host binding for the agent | `"0.0.0.0"` |
-| `bmgAgent.configMap.mcpServersJson` | JSON list of available MCP server endpoints | `'[{"url":"http://agentgateway-proxy.{{ .Release.Namespace }}.svc.cluster.local:8080/mcp/mcp-mssql"}]'` |
-| `bmgAgent.deployment.replicas` | Number of agent pod replicas | `1` |
-| `bmgAgent.deployment.image.repository` | Docker image repository | `"sawnjordan/multi-agent"` |
-| `bmgAgent.deployment.image.tag` | Docker image tag/version | `"v0.8"` |
-| `bmgAgent.deployment.image.pullPolicy` | When to pull the image | `"IfNotPresent"` |
-| `bmgAgent.deployment.ports[0].containerPort` | First container port | `8000` |
-| `bmgAgent.deployment.ports[1].containerPort` | Second container port | `8070` |
-| `bmgAgent.service.name` | Kubernetes service name | `"bmg-agent-service"` |
-| `bmgAgent.service.type` | Service type (ClusterIP, LoadBalancer, etc.) | `"ClusterIP"` |
-| `bmgAgent.service.port` | Service port | `8070` |
-| `bmgAgent.service.targetPort` | Container port to forward to | `8070` |
-| `bmgAgent.secret.name` | Secret resource name | `"bmg-agent-secrets"` |
-| `bmgAgent.secret.deepseekApiKey` | API key for DeepSeek service | `""` |
+| `agent.configMap.agentMode` | Operating mode (api, etc.) | `"api"` |
+| `agent.configMap.agentPort` | Port the agent listens on | `"8070"` |
+| `agent.configMap.agentHost` | Host binding for the agent | `"0.0.0.0"` |
+| `agent.configMap.mcpServersJson` | JSON list of available MCP server endpoints | `'[{"url":"http://agentgateway-proxy.{{ .Values.namespace }}.svc.cluster.local:8080/mcp/mcp-mssql"}]'` |
+| `agent.deployment.replicas` | Number of agent pod replicas | `1` |
+| `agent.deployment.image.repository` | Docker image repository | `"sawnjordan/multi-agent"` |
+| `agent.deployment.image.tag` | Docker image tag/version | `"v0.8"` |
+| `agent.deployment.image.pullPolicy` | When to pull the image | `"IfNotPresent"` |
+| `agent.deployment.ports[0].containerPort` | First container port | `8000` |
+| `agent.deployment.ports[1].containerPort` | Second container port | `8070` |
+| `agent.service.name` | Kubernetes service name | `"agent-service"` |
+| `agent.service.type` | Service type (ClusterIP, LoadBalancer, etc.) | `"ClusterIP"` |
+| `agent.service.port` | Service port | `8070` |
+| `agent.service.targetPort` | Container port to forward to | `8070` |
+| `agent.secret.name` | Secret resource name | `"agent-secrets"` |
+| `agent.secret.deepseekApiKey` | API key for DeepSeek service | `""` |
 
-### BMG UI Configuration
+### UI Configuration
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `bmgUi.deployment.replicas` | Number of replicas | `1` |
-| `bmgUi.deployment.image.repository` | Image repository | `"kamalberrybytes/adk-web-ui"` |
-| `bmgUi.deployment.image.tag` | Image tag | `"v5"` |
-| `bmgUi.deployment.image.pullPolicy` | Image pull policy | `"Always"` |
-| `bmgUi.deployment.port` | Container port | `5000` |
-| `bmgUi.deployment.env.azureClientSecret` | Azure client secret | `""` |
-| `bmgUi.deployment.env.redirectUri` | Redirect URI | `"http://localhost:5000/auth/callback"` |
-| `bmgUi.deployment.env.secretKey` | Secret key | `"helloworld"` |
-| `bmgUi.deployment.env.azureScopes` | Azure scopes | `"openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"` |
-| `bmgUi.service.name` | Service name | `"bmg-ui-service"` |
-| `bmgUi.service.port` | Service port | `5000` |
-| `bmgUi.service.targetPort` | Target port | `5000` |
-| `bmgUi.httpRoute.name` | HTTPRoute name | `"bmg-ui"` |
+| `ui.deployment.replicas` | Number of replicas | `1` |
+| `ui.deployment.image.repository` | Image repository | `"kamalberrybytes/adk-web-ui"` |
+| `ui.deployment.image.tag` | Image tag | `"v5"` |
+| `ui.deployment.image.pullPolicy` | Image pull policy | `"Always"` |
+| `ui.deployment.port` | Container port | `5000` |
+| `ui.deployment.env.azureClientSecret` | Azure client secret | `""` |
+| `ui.deployment.env.redirectUri` | Redirect URI | `"http://localhost:5000/auth/callback"` |
+| `ui.deployment.env.secretKey` | Secret key | `"helloworld"` |
+| `ui.deployment.env.azureScopes` | Azure scopes | `"openid api://11ddc0cd-e6fc-48b6-8832-de61800fb41e/mcp.access"` |
+| `ui.service.name` | Service name | `"ui-service"` |
+| `ui.service.port` | Service port | `5000` |
+| `ui.service.targetPort` | Target port | `5000` |
+| `ui.httpRoute.name` | HTTPRoute name | `"ui"` |
 
 ### MCP HubSpot Configuration
 
@@ -733,12 +733,12 @@ kubectl get agentgatewaypolicy -n agentgateway-system
 Update the secrets with actual values:
 
 ```bash
-# Update BMG Agent secret
-kubectl patch secret bmg-agent-secrets -n agentgateway-system \
+# Update Agent secret
+kubectl patch secret agent-secrets -n agentgateway-system \
   --type string --patch '{"stringData":{"DEEPSEEK_API_KEY":"your-actual-api-key"}}'
 
-# Update BMG UI secret (if needed)
-kubectl patch secret bmg-ui-secret -n agentgateway-system \
+# Update UI secret (if needed)
+kubectl patch secret ui-secrets -n agentgateway-system \
   --type string --patch '{"stringData":{"AZURE_CLIENT_SECRET":"your-client-secret"}}'
 
 # Update MCP MSSQL secret
@@ -751,11 +751,11 @@ kubectl patch secret mcp-mssql-secret -n agentgateway-system \
 # Port forward the Gateway (if using port forwarding)
 kubectl port-forward -n agentgateway-system svc/agentgateway-proxy 8080:8080
 
-# Access BMG UI
+# Access UI
 # Visit: http://localhost:8080/ui
 
 # Access API endpoints
-# BMG Agent API: http://localhost:8080/api (if configured)
+# Agent API: http://localhost:8080/api (if configured)
 ```
 
 ### 4. Configure External Access
@@ -784,7 +784,7 @@ spec:
 
 ## Usage Guide
 
-### Accessing BMG UI
+### Accessing UI
 1. Ensure the Gateway is accessible (via port-forward, ingress, or load balancer)
 2. Navigate to the UI endpoint: `http://<gateway-url>/ui`
 3. Authenticate using Azure AD (if configured)
@@ -796,7 +796,7 @@ The chart deploys two MCP servers:
 - **MCP MSSQL**: Accessible at `http://<gateway-url>/mcp/mcp-mssql`
 
 ### API Endpoints
-- **BMG Agent API**: `http://<gateway-url>/api` (port 8070 internally)
+- **Agent API**: `http://<gateway-url>/api` (port 8070 internally)
 - **Gateway Proxy**: `http://<gateway-url>:8080`
 
 ### Monitoring and Logs
@@ -817,13 +817,13 @@ This chart deploys the following components, each serving a specific role in the
 
 ### Core Components
 
-#### BMG Agent
+#### Agent
 - **Purpose**: Central orchestration service that manages and routes requests to MCP servers
-- **How it works**: Receives requests from BMG UI, determines which MCP server to use, and forwards requests
+- **How it works**: Receives requests from UI, determines which MCP server to use, and forwards requests
 - **Configuration**: Defines MCP server endpoints in `mcpServersJson`
 - **Ports**: Internal port 8070 for API, 8000 for other services
 
-#### BMG UI
+#### UI
 - **Purpose**: Web-based user interface for interacting with the agent system
 - **How it works**: Provides a graphical interface for users to submit requests, displays responses
 - **Authentication**: Integrates with Azure AD for user authentication
@@ -849,7 +849,7 @@ This chart deploys the following components, each serving a specific role in the
 - **Purpose**: Routes external traffic to appropriate internal services
 - **How it works**: Uses Gateway API to define routing rules based on URL paths
 - **Listeners**: Configured for HTTP on port 8080
-- **Routes**: `/ui` → BMG UI, `/mcp/*` → MCP servers
+- **Routes**: `/ui` → UI, `/mcp/*` → MCP servers
 
 #### Authentication Policy
 - **Purpose**: Enforces Azure AD authentication for protected endpoints
@@ -869,11 +869,11 @@ This chart deploys the following components, each serving a specific role in the
 1. **User Access**: User visits `http://your-gateway/ui`
 2. **Gateway Routing**: Gateway receives request, applies authentication policy
 3. **Azure AD Auth**: Policy validates JWT token from Azure AD
-4. **UI Service**: Request reaches BMG UI service
-5. **UI Processing**: BMG UI renders interface, user submits a request (e.g., "Get HubSpot contacts")
-6. **Agent Communication**: BMG UI sends request to BMG Agent API
-7. **Agent Orchestration**: BMG Agent parses request, determines it needs HubSpot data
-8. **MCP Server Call**: BMG Agent calls MCP HubSpot server
+4. **UI Service**: Request reaches UI service
+5. **UI Processing**: UI renders interface, user submits a request (e.g., "Get HubSpot contacts")
+6. **Agent Communication**: UI sends request to Agent API
+7. **Agent Orchestration**: Agent parses request, determines it needs HubSpot data
+8. **MCP Server Call**: Agent calls MCP HubSpot server
 9. **External API**: MCP HubSpot server queries HubSpot API
 10. **Response Flow**: Data flows back: HubSpot → MCP Server → Agent → UI → User
 
@@ -885,11 +885,11 @@ Internet → Gateway (8080) → Authentication Policy
                     │             │
                /ui │             │ /mcp/*
                     │             │
-              BMG UI        MCP Servers
+              UI        MCP Servers
                     │             │
                     └──────┬──────┘
                            │
-                    BMG Agent ←→ External APIs
+                    Agent ←→ External APIs
 ```
 
 ### Configuration Flow
@@ -970,8 +970,8 @@ kubectl get endpoints -n agentgateway-system
 
 #### View Component Logs
 ```bash
-# BMG Agent logs
-kubectl logs -n agentgateway-system -l app=bmg-agent --tail=100
+# Agent logs
+kubectl logs -n agentgateway-system -l app=agent --tail=100
 
 # Gateway controller logs (if accessible)
 kubectl logs -n <gateway-controller-namespace> deployment/<gateway-controller>

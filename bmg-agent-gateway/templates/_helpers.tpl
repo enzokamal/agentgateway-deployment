@@ -63,10 +63,10 @@ Create the name of the service account to use
 {{- end }}
 
 {{/*
-BMG Agent labels
+Agent labels
 */}}
-{{- define "bmg-agent.labels" -}}
-app.kubernetes.io/name: bmg-agent
+{{- define "agent.labels" -}}
+app.kubernetes.io/name: agent
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
@@ -74,18 +74,18 @@ helm.sh/chart: {{ include "bmg-agent-gateway.chart" . }}
 {{- end }}
 
 {{/*
-BMG Agent selector labels
+Agent selector labels
 */}}
-{{- define "bmg-agent.selectorLabels" -}}
-app.kubernetes.io/name: bmg-agent
+{{- define "agent.selectorLabels" -}}
+app.kubernetes.io/name: agent
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
-BMG UI labels
+UI labels
 */}}
-{{- define "bmg-ui.labels" -}}
-app.kubernetes.io/name: bmg-ui
+{{- define "ui.labels" -}}
+app.kubernetes.io/name: ui
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
@@ -93,10 +93,10 @@ helm.sh/chart: {{ include "bmg-agent-gateway.chart" . }}
 {{- end }}
 
 {{/*
-BMG UI selector labels
+UI selector labels
 */}}
-{{- define "bmg-ui.selectorLabels" -}}
-app.kubernetes.io/name: bmg-ui
+{{- define "ui.selectorLabels" -}}
+app.kubernetes.io/name: ui
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
@@ -160,108 +160,108 @@ Required values - will fail if not provided
 {{- required "AZURE_TENANT_ID is required in values.yaml" .Values.azure.tenantId }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.azureClientSecret" -}}
-{{- required "bmgUi.secret.azureClientSecret is required in values.yaml" .Values.bmgUi.secret.azureClientSecret }}
+{{- define "bmg-agent-gateway.ui.azureClientSecret" -}}
+{{- required "ui.secret.azureClientSecret is required in values.yaml" .Values.ui.secret.azureClientSecret }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.secretKey" -}}
-{{- required "bmgUi.secret.secretKey is required in values.yaml" .Values.bmgUi.secret.secretKey }}
+{{- define "bmg-agent-gateway.ui.secretKey" -}}
+{{- required "ui.secret.secretKey is required in values.yaml" .Values.ui.secret.secretKey }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.secret.name" -}}
-{{- if .Values.bmgUi.secret -}}
-{{- .Values.bmgUi.secret.name | default "bmg-ui-secrets" -}}
+{{- define "bmg-agent-gateway.ui.secret.name" -}}
+{{- if .Values.ui.secret -}}
+{{- .Values.ui.secret.name | default "ui-secrets" -}}
 {{- else -}}
-bmg-ui-secrets
+ui-secrets
 {{- end -}}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.azureScopes" -}}
-{{- required "bmgUi.deployment.env.azureScopes is required in values.yaml" .Values.bmgUi.deployment.env.azureScopes }}
+{{- define "bmg-agent-gateway.ui.azureScopes" -}}
+{{- required "ui.deployment.env.azureScopes is required in values.yaml" .Values.ui.deployment.env.azureScopes }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.redirectUri" -}}
-{{- required "bmgUi.deployment.env.redirectUri is required in values.yaml" .Values.bmgUi.deployment.env.redirectUri }}
+{{- define "bmg-agent-gateway.ui.redirectUri" -}}
+{{- required "ui.deployment.env.redirectUri is required in values.yaml" .Values.ui.deployment.env.redirectUri }}
 {{- end }}
 
 {{/*
 Default values with fallbacks
 */}}
-{{- define "bmg-agent-gateway.bmgUi.gatewayUrl" -}}
-{{- default (printf "http://%s.%s.svc.cluster.local:%d" (include "bmg-agent-gateway.gateway.name" .) (include "bmg-agent-gateway.namespace" .) (index .Values.gateway.listeners 0).port) .Values.bmgUi.deployment.env.gatewayUrl }}
+{{- define "bmg-agent-gateway.ui.gatewayUrl" -}}
+{{- default (printf "http://%s.%s.svc.cluster.local:%d" (include "bmg-agent-gateway.gateway.name" .) (include "bmg-agent-gateway.namespace" .) (index .Values.gateway.listeners 0).port) .Values.ui.deployment.env.gatewayUrl }}
 {{- end }}
 
 
-{{- define "bmg-agent-gateway.bmgUi.adkApi" -}}
-{{- default (printf "http://%s.%s.svc.cluster.local:%d" .Values.bmgAgent.service.name (include "bmg-agent-gateway.namespace" .) (int .Values.bmgAgent.service.port)) .Values.bmgUi.deployment.env.adkApi }}
+{{- define "bmg-agent-gateway.ui.adkApi" -}}
+{{- default (printf "http://%s.%s.svc.cluster.local:%d" .Values.agent.service.name (include "bmg-agent-gateway.namespace" .) (int .Values.agent.service.port)) .Values.ui.deployment.env.adkApi }}
 {{- end }}
 
 
 {{/*
 BMG Agent defaults and required
 */}}
-{{- define "bmg-agent-gateway.bmgAgent.agentMode" -}}
-{{- default "api" .Values.bmgAgent.configMap.agentMode }}
+{{- define "bmg-agent-gateway.agent.agentMode" -}}
+{{- default "api" .Values.agent.configMap.agentMode }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.agentPort" -}}
-{{- default "8070" (.Values.bmgAgent.configMap.agentPort | toString) }}
+{{- define "bmg-agent-gateway.agent.agentPort" -}}
+{{- default "8070" (.Values.agent.configMap.agentPort | toString) }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.agentHost" -}}
-{{- default "0.0.0.0" .Values.bmgAgent.configMap.agentHost }}
+{{- define "bmg-agent-gateway.agent.agentHost" -}}
+{{- default "0.0.0.0" .Values.agent.configMap.agentHost }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.mcpServersJson" -}}
-{{- default (printf "[{\"url\":\"http://%s.%s.svc.cluster.local:%d/mcp/mcp-mssql\"}]" (include "bmg-agent-gateway.gateway.name" .) (include "bmg-agent-gateway.namespace" .) (index .Values.gateway.listeners 0).port) .Values.bmgAgent.configMap.mcpServersJson }}
+{{- define "bmg-agent-gateway.agent.mcpServersJson" -}}
+{{- default (printf "[{\"url\":\"http://%s.%s.svc.cluster.local:%d/mcp/mcp-mssql\"}]" (include "bmg-agent-gateway.gateway.name" .) (include "bmg-agent-gateway.namespace" .) (index .Values.gateway.listeners 0).port) .Values.agent.configMap.mcpServersJson }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.deepseekApiKey" -}}
-{{- if .Values.bmgAgent.secret -}}
-{{- required "bmgAgent.secret.deepseekApiKey is required in values.yaml" .Values.bmgAgent.secret.deepseekApiKey -}}
+{{- define "bmg-agent-gateway.agent.deepseekApiKey" -}}
+{{- if .Values.agent.secret -}}
+{{- required "agent.secret.deepseekApiKey is required in values.yaml" .Values.agent.secret.deepseekApiKey -}}
 {{- else -}}
-{{- required "bmgAgent.secret.deepseekApiKey is required in values.yaml" "" -}}
+{{- required "agent.secret.deepseekApiKey is required in values.yaml" "" -}}
 {{- end -}}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.configMap.name" -}}
-{{- if .Values.bmgAgent.configMap -}}
-{{- .Values.bmgAgent.configMap.name | default "bmg-agent-config" -}}
+{{- define "bmg-agent-gateway.agent.configMap.name" -}}
+{{- if .Values.agent.configMap -}}
+{{- .Values.agent.configMap.name | default "agent-config" -}}
 {{- else -}}
-bmg-agent-config
+agent-config
 {{- end -}}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.secret.name" -}}
-{{- if .Values.bmgAgent.secret -}}
-{{- .Values.bmgAgent.secret.name | default "bmg-agent-secrets" -}}
+{{- define "bmg-agent-gateway.agent.secret.name" -}}
+{{- if .Values.agent.secret -}}
+{{- .Values.agent.secret.name | default "agent-secrets" -}}
 {{- else -}}
-bmg-agent-secrets
+agent-secrets
 {{- end -}}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.image.repository" -}}
-{{- default "sawnjordan/multi-agent" .Values.bmgAgent.deployment.image.repository }}
+{{- define "bmg-agent-gateway.agent.image.repository" -}}
+{{- default "sawnjordan/multi-agent" .Values.agent.deployment.image.repository }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.image.tag" -}}
-{{- default .Chart.AppVersion .Values.bmgAgent.deployment.image.tag }}
+{{- define "bmg-agent-gateway.agent.image.tag" -}}
+{{- default .Chart.AppVersion .Values.agent.deployment.image.tag }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgAgent.image.pullPolicy" -}}
-{{- default "IfNotPresent" .Values.bmgAgent.deployment.image.pullPolicy }}
+{{- define "bmg-agent-gateway.agent.image.pullPolicy" -}}
+{{- default "IfNotPresent" .Values.agent.deployment.image.pullPolicy }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.image.repository" -}}
-{{- default "kamalberrybytes/adk-web-ui" .Values.bmgUi.deployment.image.repository }}
+{{- define "bmg-agent-gateway.ui.image.repository" -}}
+{{- default "kamalberrybytes/adk-web-ui" .Values.ui.deployment.image.repository }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.image.tag" -}}
-{{- default "latest" .Values.bmgUi.deployment.image.tag }}
+{{- define "bmg-agent-gateway.ui.image.tag" -}}
+{{- default "latest" .Values.ui.deployment.image.tag }}
 {{- end }}
 
-{{- define "bmg-agent-gateway.bmgUi.image.pullPolicy" -}}
-{{- default "Always" .Values.bmgUi.deployment.image.pullPolicy }}
+{{- define "bmg-agent-gateway.ui.image.pullPolicy" -}}
+{{- default "Always" .Values.ui.deployment.image.pullPolicy }}
 {{- end }}
 
 {{- define "bmg-agent-gateway.mcpHubspot.image.repository" -}}

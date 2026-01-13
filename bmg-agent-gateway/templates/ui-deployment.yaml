@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.ui.deployment.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "ui.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.ui.deployment.replicas }}
+  selector:
+    matchLabels:
+      {{- include "ui.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "ui.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.ui.deployment.name }}
+          image: {{ include "bmg-agent-gateway.ui.image.repository" . }}:{{ include "bmg-agent-gateway.ui.image.tag" . }}
+          imagePullPolicy: {{ include "bmg-agent-gateway.ui.image.pullPolicy" . }}
+          ports:
+            - containerPort: {{ .Values.ui.deployment.port }}
+          env:
+            - name: AZURE_CLIENT_ID
+              value: {{ include "bmg-agent-gateway.azure.clientId" . }}
+            - name: AZURE_TENANT_ID
+              value: {{ include "bmg-agent-gateway.azure.tenantId" . }}
+            - name: GATEWAY_URL
+              value: {{ tpl (include "bmg-agent-gateway.ui.gatewayUrl" .) . }}
+            - name: AZURE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bmg-agent-gateway.ui.secret.name" . }}
+                  key: AZURE_CLIENT_SECRET
+            - name: REDIRECT_URI
+              value: {{ include "bmg-agent-gateway.ui.redirectUri" . }}
+            - name: ADK_API
+              value: {{ tpl (include "bmg-agent-gateway.ui.adkApi" .) . }}
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "bmg-agent-gateway.ui.secret.name" . }}
+                  key: SECRET_KEY
+            - name: AZURE_SCOPES
+              value: {{ include "bmg-agent-gateway.ui.azureScopes" . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.ui.service.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "ui.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "ui.selectorLabels" . | nindent 4 }}
+  ports:
+    - port: {{ .Values.ui.service.port }}
+      targetPort: {{ .Values.ui.service.targetPort }}
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.ui.httpRoute.name }}
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: {{ include "bmg-agent-gateway.gateway.name" . }}
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /ui
+      filters:
+        - type: URLRewrite
+          urlRewrite:
+            path:
+              type: ReplacePrefixMatch
+              replacePrefixMatch: /
+      backendRefs:
+        - name: {{ .Values.ui.service.name }}
+          port: {{ .Values.ui.service.port }}
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /auth
+      backendRefs:
+        - name: {{ .Values.ui.service.name }}
+          port: {{ .Values.ui.service.port }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "bmg-agent-gateway.ui.secret.name" . }}
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+ AZURE_CLIENT_SECRET: {{ include "bmg-agent-gateway.ui.azureClientSecret" . }}
+ SECRET_KEY: {{ include "bmg-agent-gateway.ui.secretKey" . }}

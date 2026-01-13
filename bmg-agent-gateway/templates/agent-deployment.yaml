@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.agent.deployment.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.agent.deployment.replicas }}
+  selector:
+    matchLabels:
+      {{- include "agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "agent.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+        - name: {{ .Values.agent.deployment.name }}
+          image: {{ include "bmg-agent-gateway.agent.image.repository" . }}:{{ include "bmg-agent-gateway.agent.image.tag" . }}
+          imagePullPolicy: {{ include "bmg-agent-gateway.agent.image.pullPolicy" . }}
+          ports:
+{{- range .Values.agent.deployment.ports }}
+            - containerPort: {{ .containerPort }}
+{{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "bmg-agent-gateway.agent.configMap.name" . }}
+            - secretRef:
+                name: {{ include "bmg-agent-gateway.agent.secret.name" . }}
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "bmg-agent-gateway.agent.configMap.name" . }}
+  namespace: {{ .Values.namespace }}
+data:
+  AGENT_MODE: {{ include "bmg-agent-gateway.agent.agentMode" . | quote }}
+  AGENT_PORT: {{ include "bmg-agent-gateway.agent.agentPort" . | quote }}
+  AGENT_HOST: {{ include "bmg-agent-gateway.agent.agentHost" . | quote }}
+  MCP_SERVERS_JSON: {{ tpl (include "bmg-agent-gateway.agent.mcpServersJson" .) . | quote }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "bmg-agent-gateway.agent.secret.name" . }}
+  namespace: {{ .Values.namespace }}
+type: Opaque
+stringData:
+  DEEPSEEK_API_KEY: {{ include "bmg-agent-gateway.agent.deepseekApiKey" . }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.agent.service.name }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "agent.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "agent.selectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: {{ .Values.agent.service.port }}
+      targetPort: {{ .Values.agent.service.targetPort }}
+  type: {{ .Values.agent.service.type }}
